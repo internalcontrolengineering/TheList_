@@ -237,7 +237,6 @@
   .ci-btn.edit:hover { color: var(--accent); }
   .ci-btn.del:hover { color: var(--danger); }
 
-  /* Formulario de edición inline */
   .config-edit-form {
     background: var(--clay);
     border-radius: 14px;
@@ -271,6 +270,24 @@
   .config-checkbox-row { display:flex; align-items:center; gap:8px; margin-bottom:10px; font-size:.85rem; color:var(--text-sec); font-weight:600; }
   .config-checkbox-row input { width:18px; height:18px; cursor:pointer; accent-color: var(--accent); }
   .config-add-btn { margin-top:4px; }
+
+  .balance-bar {
+    display:flex; align-items:center; gap:6px; flex-wrap:wrap;
+    padding: 10px 12px; margin-bottom: 14px;
+    background: var(--clay); border-radius: 12px;
+    box-shadow: var(--shadow-in);
+    font-size:.8rem; font-weight:700; color: var(--text-sec);
+    position:relative;
+  }
+  .balance-bar .bb-val { color: var(--text); }
+  .balance-bar .bb-delta {
+    margin-left:auto; padding: 2px 8px; border-radius: 6px;
+    font-size:.72rem; font-weight:800;
+    box-shadow: var(--shadow-out);
+  }
+  .balance-bar .bb-delta.ok { color:#34c759; }
+  .balance-bar .bb-delta.warn { color:#ff9500; }
+  .balance-bar .bb-delta.bad { color:#ff3b30; }
 
   #toast { position: fixed; bottom: calc(26px + var(--safe)); left:50%; transform: translateX(-50%) translateY(130px); background: var(--clay); color: var(--text); padding: 13px 24px; border-radius: 999px; font-size:.85rem; font-weight:700; box-shadow: var(--shadow-clay); transition: transform .45s cubic-bezier(.34,1.56,.64,1); z-index:300; pointer-events:none; max-width:90%; text-align:center; }
   #toast.show { transform: translateX(-50%) translateY(0); }
@@ -408,7 +425,15 @@
   <div class="modal" id="configModal">
     <div class="modal-icon config">⚙️</div>
     <h3>Configurar ítems</h3>
-    <p>Edita, añade o elimina los valores positivos y negativos, y ajusta su peso.</p>
+    <p>Edita, añade o elimina los valores positivos y negativos, y ajusta su peso. El balance se iguala por peso total, así que no importa que haya más de un tipo que del otro.</p>
+
+    <div class="balance-bar" id="balanceBar">
+      <span class="bb-label">Balance:</span>
+      <span class="bb-val" id="bbPos">0 pos</span>
+      <span class="bb-sep">·</span>
+      <span class="bb-val" id="bbNeg">0 neg</span>
+      <span class="bb-delta" id="bbDelta">Δ 0</span>
+    </div>
 
     <div class="config-tabs">
       <button class="config-tab active" data-tab="pos">Positivos (<span id="posCount">0</span>)</button>
@@ -491,7 +516,7 @@ const $$ = (s) => document.querySelectorAll(s);
 
 let POSITIVE_ITEMS = [];
 let NEGATIVE_ITEMS = [];
-let editingItemKey = null;   // clave del ítem en edición inline
+let editingItemKey = null;
 
 function deepClone(arr) { return JSON.parse(JSON.stringify(arr)); }
 function loadItems() {
@@ -617,6 +642,7 @@ function openConfig() {
   $$('.config-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === 'pos'));
   renderConfigList();
   renderConfigAddForm();
+  renderBalanceBar();
   configOverlay.classList.add('open');
 }
 function closeConfig() { configOverlay.classList.remove('open'); }
@@ -629,8 +655,29 @@ $$('.config-tab').forEach(tab => {
     $$('.config-tab').forEach(t => t.classList.toggle('active', t === tab));
     renderConfigList();
     renderConfigAddForm();
+    renderBalanceBar();
   });
 });
+
+function renderBalanceBar() {
+  const p = POSITIVE_ITEMS.length;
+  const n = NEGATIVE_ITEMS.length;
+  const d = p - n;
+  $('#bbPos').textContent = `${p} pos`;
+  $('#bbNeg').textContent = `${n} neg`;
+  const deltaEl = $('#bbDelta');
+  const abs = Math.abs(d);
+  if (abs === 0) {
+    deltaEl.textContent = 'Δ 0 · Balanceado';
+    deltaEl.className = 'bb-delta ok';
+  } else if (abs <= 2) {
+    deltaEl.textContent = `Δ ${d > 0 ? '+' : ''}${d} · Casi`;
+    deltaEl.className = 'bb-delta warn';
+  } else {
+    deltaEl.textContent = `Δ ${d > 0 ? '+' : ''}${d} · Desbalance`;
+    deltaEl.className = 'bb-delta bad';
+  }
+}
 
 function renderConfigList() {
   const items = configTab === 'pos' ? POSITIVE_ITEMS : NEGATIVE_ITEMS;
@@ -648,6 +695,7 @@ function renderConfigList() {
       configList.appendChild(buildItemRow(it));
     }
   });
+  renderBalanceBar();
 }
 
 function buildItemRow(it) {
@@ -668,7 +716,6 @@ function buildItemRow(it) {
   edit.addEventListener('click', () => {
     editingItemKey = it.key;
     renderConfigList();
-    // scroll al formulario
     setTimeout(() => {
       const form = configList.querySelector('.config-edit-form');
       if (form) form.scrollIntoView({ behavior:'smooth', block:'nearest' });
@@ -762,7 +809,6 @@ function buildEditForm(it) {
     const newTag = tagInput.value.trim();
     if (newTag.length < 2) { toast('El nombre debe tener al menos 2 caracteres'); return; }
     const arr = configTab === 'pos' ? POSITIVE_ITEMS : NEGATIVE_ITEMS;
-    // Duplicado (excluyendo el propio)
     if (arr.some(i => i.key !== it.key && i.tag.toLowerCase() === newTag.toLowerCase())) {
       toast('Ya existe un ítem con ese nombre');
       return;
@@ -1072,31 +1118,68 @@ $('#nextBtn').addEventListener('click', () => {
   }
 });
 
-/* ============ CÁLCULO ============ */
+/* =========================================================
+   CÁLCULO DEFINITIVO
+   - Igualación por peso total (independiente de la cantidad)
+   - Rango exacto −100..+100
+   - Perfil perfecto (5★ pos, 1★ neg) = 100 → 5★
+========================================================= */
 function computeResult(answers) {
-  let sumP = 0, sumN = 0, maxP = 0, maxN = 0;
+  const posW = POSITIVE_ITEMS.reduce((s, it) => s + it.weight, 0);
+  const negW = NEGATIVE_ITEMS.reduce((s, it) => s + it.weight, 0);
+
+  let targetW;
+  if (posW > 0 && negW > 0) targetW = (posW + negW) / 2;
+  else targetW = Math.max(posW, negW) || 1;
+
+  const scaleP = posW > 0 ? targetW / posW : 0;
+  const scaleN = negW > 0 ? targetW / negW : 0;
+
+  let sumWP = 0, sumWPosScaled = 0;
+  let sumWN = 0, sumWNegScaled = 0;
   let veto = false;
+
   POSITIVE_ITEMS.forEach(it => {
     const v = answers[it.key] || 1;
-    sumP += v * it.weight;
-    maxP += 5 * it.weight;
+    const w = it.weight * scaleP;
+    sumWP += v * w;
+    sumWPosScaled += w;
   });
   NEGATIVE_ITEMS.forEach(it => {
     const v = answers[it.key] || 1;
-    sumN += v * it.weight;
-    maxN += 5 * it.weight;
+    const w = it.weight * scaleN;
+    sumWN += v * w;
+    sumWNegScaled += w;
     if (it.veto && v === 5) veto = true;
   });
-  const IIN = ((sumP / (maxP || 1)) - (sumN / (maxN || 1)) * 1.5) * 50;
+
+  const avgP = sumWPosScaled ? (sumWP / sumWPosScaled) : 1;
+  const avgN = sumWNegScaled ? (sumWN / sumWNegScaled) : 1;
+
+  const normP = (avgP - 1) / 4;
+  const normN = (avgN - 1) / 4;
+
+  // Tolerancia: 1★ y 2★ no penalizan. 3★ en adelante sí.
+  const normN_ajustado = Math.max(0, (normN - 0.25) / 0.75);
+
+  const ASYM = 1.2;
+  const raw = normP - normN_ajustado * ASYM;
+  let IIN;
+  if (raw >= 0) IIN = (raw / 1.0) * 100;
+  else          IIN = (raw / ASYM) * 100;
+
   let stars;
-  if (IIN >= 40) stars = 5;
-  else if (IIN >= 25) stars = 4;
+  if (IIN >= 60) stars = 5;
+  else if (IIN >= 35) stars = 4;
   else if (IIN >= 10) stars = 3;
-  else if (IIN >= -5) stars = 2;
+  else if (IIN >= -15) stars = 2;
   else stars = 1;
+
   if (veto && stars > 3) stars = 3;
-  return { IIN, stars, veto, sumP, sumN, maxP, maxN };
+
+  return { IIN, stars, veto, avgP, avgN, normP, normN, normN_ajustado, targetW, scaleP, scaleN, raw };
 }
+
 function verdictFor(stars, veto) {
   if (veto && stars === 3) return { text:'Veto crítico · Reservas serias', cls:'veto' };
   if (stars === 5) return { text:'Relación altamente recomendable', cls:'good' };
