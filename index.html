@@ -54,7 +54,6 @@
   @keyframes itemOut { to { opacity:0; transform: scale(.85) translateX(-30px); max-height:0; margin:0; padding:0; } }
   @keyframes modalIn { from { opacity:0; transform: scale(.85) translateY(20px); } to { opacity:1; transform: scale(1) translateY(0); } }
 
-  /* === ENCABEZADO MODERNO (Nombre más grande) === */
   .topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 30px; gap: 10px; }
   .logo { 
     font-weight: 800; font-size: 1.6rem; letter-spacing: -0.03em; 
@@ -128,7 +127,11 @@
   .star.bounce { animation: starBounce .45s cubic-bezier(.34,1.56,.64,1); }
   @keyframes starBounce { 0%{transform:scale(1)} 40%{transform:scale(1.4) rotate(-6deg)} 70%{transform:scale(.9) rotate(3deg)} 100%{transform:scale(1) rotate(0)} }
   .stars-label { text-align:center; font-size:.9rem; color:var(--text-sec); height:22px; margin-top:8px; transition: color .3s; font-weight:600; }
-  .q-actions { margin-top:28px; }
+  
+  /* Botones de navegación del test */
+  .test-nav-actions { display:flex; gap:12px; margin-top:28px; }
+  .test-nav-actions .btn { flex:1; padding: 16px; }
+  .test-nav-actions .btn.ghost { margin-top:0; }
 
   .loading-box { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; min-height:62vh; }
   .spinner { width: 84px; height: 84px; border-radius: 50%; background: var(--clay); box-shadow: var(--shadow-clay); position:relative; margin-bottom:30px; display:flex; align-items:center; justify-content:center; }
@@ -162,7 +165,7 @@
   .result-actions .btn { padding: 15px; font-size:.95rem; }
 
   .summary-title { font-size:.78rem; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--text-sec); margin: 26px 0 12px; padding-left:6px; }
-  .summary-group { background: var(--clay); border-radius: var(--radius-sm); padding: 6px 18px; margin-bottom:14px; box-shadow: var(--shadow-clay); animation: floatIn .5s both; position:relative; }
+  .summary-group { background: var(--clay); border-radius: var(--radius-sm); padding: 6px 18px; margin-bottom:14px; box-shadow: var(--shadow-clay); animation: floatIn .5s both; position:relative; transition: all .3s; }
   .summary-group::before { content:''; position:absolute; inset:0; border-radius:inherit; pointer-events:none; background: linear-gradient(160deg, rgba(255,255,255,.25), transparent 45%); opacity:.5; }
   html.dark .summary-group::before { background: linear-gradient(160deg, rgba(255,255,255,.06), transparent 45%); }
   .summary-group.neg { animation-delay:.1s; }
@@ -174,9 +177,24 @@
   .weight-badge { font-size:.68rem; font-weight:800; padding: 2px 7px; border-radius: 6px; background: var(--clay); box-shadow: var(--shadow-in); color: var(--text-sec); letter-spacing:.02em; }
   .weight-badge.w2 { color: var(--accent); }
   .weight-badge.w15 { color: var(--accent2); }
+  
+  /* Estrellas del resumen (lectura y edición) */
   .sum-stars { display:flex; gap:3px; flex-shrink:0; }
-  .sum-stars span { font-size:.98rem; color: var(--star-off); text-shadow: 0 1px 2px rgba(0,0,0,.12); }
+  .sum-stars span { font-size:1.05rem; color: var(--star-off); text-shadow: 0 1px 2px rgba(0,0,0,.12); transition: transform .2s, color .2s; }
   .sum-stars span.on { color: var(--star-on); filter: drop-shadow(0 2px 4px rgba(255,193,7,.45)); }
+  
+  /* Modo edición en el resumen */
+  .editing-summary .sum-stars span { cursor:pointer; padding: 4px; }
+  .editing-summary .sum-stars span:active { transform: scale(1.3); }
+  .editing-summary .sum-stars span:hover { transform: scale(1.2); }
+
+  /* Botonera fija para guardar edición */
+  .edit-save-bar { 
+    position: sticky; bottom: 0; margin-top: 20px; padding-top: 15px; 
+    background: linear-gradient(to top, var(--bg) 70%, transparent);
+    display: none; flex-direction: column; gap: 10px; z-index: 10;
+  }
+  .edit-save-bar.active { display: flex; animation: floatIn .3s ease; }
 
   .list-tabs { display:flex; gap:8px; margin-bottom:18px; }
   .list-tab { flex:1; padding: 14px 8px; border:none; border-radius: 16px; background: var(--clay); color: var(--text-sec); font-weight:800; font-size:.82rem; cursor:pointer; box-shadow: var(--shadow-out); transition: all .25s; font-family:inherit; display:flex; flex-direction:column; align-items:center; gap:4px; }
@@ -322,6 +340,7 @@
     .stars { gap:8px; }
     .list-tab { font-size:.75rem; padding: 12px 6px; }
     .logo { font-size: 1.3rem; padding: 10px 18px; }
+    .test-nav-actions { flex-direction: column; }
   }
 </style>
 </head>
@@ -402,7 +421,9 @@
       <div class="item-desc" id="itemDesc">—</div>
       <div class="stars" id="stars" role="radiogroup" aria-label="Calificación"></div>
       <div class="stars-label" id="starsLabel">Toca una estrella para calificar</div>
-      <div class="q-actions">
+      
+      <div class="test-nav-actions">
+        <button class="btn ghost" id="prevBtn" style="margin-top:0;" disabled>Atrás</button>
         <button class="btn" id="nextBtn" disabled>Siguiente</button>
       </div>
     </div>
@@ -424,13 +445,19 @@
       <div class="result-verdict" id="resVerdict">—</div>
     </div>
 
-    <div class="result-actions">
-      <button class="btn ghost" id="editCurrentBtn">✏️ Editar</button>
+    <div class="result-actions" id="standardActions">
+      <button class="btn ghost" id="editCurrentBtn">✏️ Cambiar nombre</button>
+      <button class="btn ghost" id="editAnswersBtn">📝 Editar respuestas</button>
       <button class="btn danger" id="deleteCurrentBtn" style="margin-top:0;">🗑️ Eliminar</button>
     </div>
 
-    <div class="summary-title">Resumen de respuestas</div>
+    <div class="summary-title" id="summaryTitle">Resumen de respuestas</div>
     <div id="resSummary"></div>
+
+    <div class="edit-save-bar" id="editSaveBar">
+      <button class="btn" id="saveEditedAnswersBtn">💾 Guardar cambios</button>
+      <button class="btn ghost" id="cancelEditAnswersBtn" style="margin-top:0;">Cancelar</button>
+    </div>
 
     <button class="btn ghost" id="backHomeBtn" style="margin-top:20px;">Volver al inicio</button>
   </section>
@@ -990,6 +1017,8 @@ let state = { name:'', order:[], index:0, answers:{}, selected:0 };
 let editingRecordId = null;
 let currentRecordId = null;
 let currentListTab = 'white';
+let isEditingSummary = false;
+let tempAnswers = {};
 
 /* ============ HOME ============ */
 const nameInput = $('#nameInput');
@@ -1143,10 +1172,13 @@ function renderQuestion() {
 
   const starsEl = $('#stars');
   starsEl.innerHTML = '';
-  state.selected = 0;
+  
+  // Recuperar valor previo si se regresó
+  state.selected = state.answers[item.key] || 0;
+  
   for (let i = 1; i <= 5; i++) {
     const s = document.createElement('span');
-    s.className = 'star';
+    s.className = 'star' + (i <= state.selected ? ' on' : '');
     s.dataset.value = i;
     s.textContent = '★';
     s.setAttribute('role','radio');
@@ -1162,9 +1194,19 @@ function renderQuestion() {
   }, {passive:false});
 
   const labelEl = $('#starsLabel');
-  labelEl.textContent = 'Toca una estrella para calificar';
-  labelEl.style.color = 'var(--text-sec)';
-  $('#nextBtn').disabled = true;
+  if (state.selected > 0) {
+    const labels = item.type === 'pos' ? ['Nada','Poco','Moderado','Notable','Sobresaliente'] : ['Nada (bien)','Leve (bien)','Moderado','Notable (mal)','Grave (mal)'];
+    labelEl.textContent = `${state.selected} ${state.selected === 1 ? 'estrella' : 'estrellas'} · ${labels[state.selected-1]}`;
+    labelEl.style.color = item.type === 'pos'
+      ? (state.selected >= 4 ? '#34c759' : state.selected === 3 ? '#ff9500' : '#ff3b30')
+      : (state.selected >= 4 ? '#ff3b30' : state.selected === 3 ? '#ff9500' : '#34c759');
+  } else {
+    labelEl.textContent = 'Toca una estrella para calificar';
+    labelEl.style.color = 'var(--text-sec)';
+  }
+
+  $('#prevBtn').disabled = (state.index === 0);
+  $('#nextBtn').disabled = !state.selected;
   $('#nextBtn').textContent = (state.index === total - 1) ? 'Ver resultado' : 'Siguiente';
 
   const card = $('#questionCard');
@@ -1192,21 +1234,43 @@ function selectStar(n) {
   $('#nextBtn').disabled = false;
 }
 
+$('#prevBtn').addEventListener('click', () => {
+  if (state.index > 0) {
+    const item = state.order[state.index];
+    state.answers[item.key] = state.selected; // Guardar por si acaso
+    
+    state.index--;
+    const card = $('#questionCard');
+    card.style.transition = 'opacity .22s, transform .22s, filter .22s';
+    card.style.opacity = '0';
+    card.style.transform = 'translateX(20px) scale(.98)';
+    card.style.filter = 'blur(3px)';
+    setTimeout(() => {
+      card.style.transition = 'none';
+      card.style.opacity = '1';
+      card.style.transform = 'translateX(0) scale(1)';
+      card.style.filter = 'blur(0)';
+      renderQuestion();
+    }, 220);
+  }
+});
+
 $('#nextBtn').addEventListener('click', () => {
   if (!state.selected) return;
   const item = state.order[state.index];
   state.answers[item.key] = state.selected;
+  
   if (state.index < state.order.length - 1) {
     state.index++;
     const card = $('#questionCard');
     card.style.transition = 'opacity .22s, transform .22s, filter .22s';
     card.style.opacity = '0';
-    card.style.transform = 'translateY(-12px) scale(.98)';
+    card.style.transform = 'translateX(-20px) scale(.98)';
     card.style.filter = 'blur(3px)';
     setTimeout(() => {
       card.style.transition = 'none';
       card.style.opacity = '1';
-      card.style.transform = 'translateY(0) scale(1)';
+      card.style.transform = 'translateX(0) scale(1)';
       card.style.filter = 'blur(0)';
       renderQuestion();
     }, 220);
@@ -1324,6 +1388,13 @@ function finishTest() {
 function renderResult(record, isNew) {
   currentRecordId = record.id;
   $('#resName').textContent = record.name;
+  
+  updateResultUI(record);
+
+  if (isNew) setTimeout(() => toast('Evaluación guardada'), 600);
+}
+
+function updateResultUI(record) {
   const big = $('#resBigStars');
   big.innerHTML = '';
   for (let i = 1; i <= 5; i++) {
@@ -1333,18 +1404,7 @@ function renderResult(record, isNew) {
     big.appendChild(s);
   }
   const scoreEl = $('#resScore');
-  scoreEl.innerHTML = `0<small>/5</small>`;
-  const target = record.stars;
-  const dur = 750, t0 = performance.now();
-  function tick(t) {
-    const p = Math.min((t - t0) / dur, 1);
-    const eased = 1 - Math.pow(1 - p, 3);
-    const val = Math.round(eased * target);
-    scoreEl.innerHTML = `${val}<small>/5</small>`;
-    if (p < 1) requestAnimationFrame(tick);
-    else scoreEl.innerHTML = `${target}<small>/5</small>`;
-  }
-  requestAnimationFrame(tick);
+  scoreEl.innerHTML = `${record.stars}<small>/5</small>`;
 
   const v = verdictFor(record.stars, record.veto);
   const vEl = $('#resVerdict');
@@ -1359,17 +1419,25 @@ function renderResult(record, isNew) {
   const posGroup = document.createElement('div');
   posGroup.className = 'summary-group';
   posGroup.innerHTML = '<div class="sum-group-title">Aspectos positivos</div>';
-  posItems.forEach(it => posGroup.appendChild(makeSumItem(it.tag, it.weight, record.answers[it.key] || 0)));
+  posItems.forEach(it => posGroup.appendChild(makeSumItem(it.tag, it.weight, record.answers[it.key] || 0, it.key, 'pos')));
+  
   const negGroup = document.createElement('div');
   negGroup.className = 'summary-group neg';
   negGroup.innerHTML = '<div class="sum-group-title">Aspectos negativos</div>';
-  negItems.forEach(it => negGroup.appendChild(makeSumItem(it.tag, it.weight, record.answers[it.key] || 0)));
+  negItems.forEach(it => negGroup.appendChild(makeSumItem(it.tag, it.weight, record.answers[it.key] || 0, it.key, 'neg')));
+  
   summary.appendChild(posGroup);
   summary.appendChild(negGroup);
 
-  if (isNew) setTimeout(() => toast('Evaluación guardada'), 600);
+  // Restaurar estado UI normal
+  isEditingSummary = false;
+  summary.classList.remove('editing-summary');
+  $('#standardActions').style.display = 'flex';
+  $('#editSaveBar').classList.remove('active');
+  $('#summaryTitle').textContent = 'Resumen de respuestas';
 }
-function makeSumItem(label, weight, value) {
+
+function makeSumItem(label, weight, value, key, type) {
   const div = document.createElement('div');
   div.className = 'sum-item';
   const l = document.createElement('div');
@@ -1380,17 +1448,76 @@ function makeSumItem(label, weight, value) {
   wb.className = 'weight-badge ' + (weight >= 2 ? 'w2' : weight >= 1.5 ? 'w15' : '');
   wb.textContent = '×' + weight.toFixed(1);
   l.appendChild(txt); l.appendChild(wb);
+  
   const stars = document.createElement('div');
   stars.className = 'sum-stars';
+  stars.dataset.key = key;
   for (let i = 1; i <= 5; i++) {
     const sp = document.createElement('span');
     sp.textContent = '★';
+    sp.dataset.val = i;
     if (i <= value) sp.classList.add('on');
+    
+    // Evento para editar en línea
+    sp.addEventListener('click', () => {
+      if (!isEditingSummary) return;
+      // Actualizar visualmente
+      const siblings = stars.querySelectorAll('span');
+      siblings.forEach((s, idx) => {
+        s.classList.toggle('on', idx < i);
+      });
+      tempAnswers[key] = i;
+    });
+    
     stars.appendChild(sp);
   }
   div.appendChild(l); div.appendChild(stars);
   return div;
 }
+
+/* ============ EDICIÓN DE RESPUESTAS EN RESUMEN ============ */
+$('#editAnswersBtn').addEventListener('click', () => {
+  const rec = loadSaved().find(r => r.id === currentRecordId);
+  if (!rec) return;
+  
+  isEditingSummary = true;
+  tempAnswers = { ...rec.answers };
+  
+  $('#resSummary').classList.add('editing-summary');
+  $('#standardActions').style.display = 'none';
+  $('#editSaveBar').classList.add('active');
+  $('#summaryTitle').textContent = 'Toca las estrellas para corregir';
+  
+  toast('Modo edición activado');
+});
+
+$('#cancelEditAnswersBtn').addEventListener('click', () => {
+  const rec = loadSaved().find(r => r.id === currentRecordId);
+  if (rec) updateResultUI(rec);
+});
+
+$('#saveEditedAnswersBtn').addEventListener('click', () => {
+  const saved = loadSaved();
+  const idx = saved.findIndex(r => r.id === currentRecordId);
+  if (idx < 0) return;
+  
+  const rec = saved[idx];
+  rec.answers = { ...tempAnswers };
+  
+  // Recalcular nota
+  const result = computeResult(rec.answers);
+  rec.IIN = result.IIN;
+  rec.stars = result.stars;
+  rec.veto = result.veto;
+  rec.date = new Date().toISOString(); // Actualizar fecha de modificación
+  
+  saved[idx] = rec;
+  persistSaved(saved);
+  
+  // Refrescar UI
+  updateResultUI(rec);
+  toast('Respuestas actualizadas y nota recalculada');
+});
 
 /* ============ ACCIONES RESULTADO ============ */
 $('#editCurrentBtn').addEventListener('click', () => {
@@ -1431,7 +1558,7 @@ function deleteRecord(id) {
   }, card ? 360 : 0);
 }
 
-/* ============ EDITAR EVALUACIÓN ============ */
+/* ============ EDITAR EVALUACIÓN (MODAL) ============ */
 function openEditModal(rec) {
   openModal({
     icon: '✏️', iconClass: 'edit',
@@ -1477,16 +1604,17 @@ function renameRecord(id, newName) {
 function openSavedRecord(rec) {
   renderResult(rec, false);
   showScreen('screen-result');
-  $('#resScore').innerHTML = `0<small>/5</small>`;
+  const scoreEl = $('#resScore');
+  scoreEl.innerHTML = `0<small>/5</small>`;
   const target = rec.stars;
   const dur = 800, t0 = performance.now();
   function tick(t) {
     const p = Math.min((t - t0) / dur, 1);
     const eased = 1 - Math.pow(1 - p, 3);
     const val = Math.round(eased * target);
-    $('#resScore').innerHTML = `${val}<small>/5</small>`;
+    scoreEl.innerHTML = `${val}<small>/5</small>`;
     if (p < 1) requestAnimationFrame(tick);
-    else $('#resScore').innerHTML = `${target}<small>/5</small>`;
+    else scoreEl.innerHTML = `${target}<small>/5</small>`;
   }
   requestAnimationFrame(tick);
   toast(`Evaluación de ${rec.name}`);
