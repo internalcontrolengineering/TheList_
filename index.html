@@ -460,8 +460,11 @@
       <button class="btn config-add-btn" id="cfgAddBtn">➕ Añadir</button>
     </div>
 
-    <div class="modal-actions" style="margin-top:16px;">
-      <button class="btn ghost" id="cfgRestoreBtn" style="margin-top:0;">↺ Restaurar lista original</button>
+    <div class="modal-actions" style="margin-top:16px; border-top: 1px solid rgba(140,150,175,.2); padding-top: 16px;">
+      <button class="btn ghost" id="cfgExportBtn" style="margin-top:0;">📤 Exportar JSON</button>
+      <button class="btn ghost" id="cfgImportBtn" style="margin-top:0;">📥 Importar JSON</button>
+      <input type="file" id="importFile" accept=".json" style="display:none;" />
+      <button class="btn ghost" id="cfgRestoreBtn" style="margin-top:10px; color: var(--danger);">↺ Restaurar lista original</button>
       <button class="btn ghost" id="cfgCloseBtn" style="margin-top:0;">Cerrar</button>
     </div>
   </div>
@@ -887,6 +890,74 @@ $('#cfgRestoreBtn').addEventListener('click', () => {
 
 $('#cfgCloseBtn').addEventListener('click', closeConfig);
 $('#configBtn').addEventListener('click', openConfig);
+
+/* ============ EXPORTAR / IMPORTAR JSON ============ */
+$('#cfgExportBtn').addEventListener('click', () => {
+  const data = {
+    version: 1,
+    date: new Date().toISOString(),
+    items: { pos: POSITIVE_ITEMS, neg: NEGATIVE_ITEMS },
+    evaluations: loadSaved()
+  };
+  const jsonStr = JSON.stringify(data, null, 2);
+  const blob = new Blob([jsonStr], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'TheList.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  
+  toast('Copia de seguridad exportada');
+});
+
+$('#cfgImportBtn').addEventListener('click', () => {
+  $('#importFile').click();
+});
+
+$('#importFile').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      
+      // Validación básica
+      if (!data.items || !data.items.pos || !data.items.neg) {
+        throw new Error('Formato de archivo inválido');
+      }
+
+      // Importar ítems
+      POSITIVE_ITEMS = data.items.pos;
+      NEGATIVE_ITEMS = data.items.neg;
+      saveItems();
+
+      // Importar evaluaciones
+      if (Array.isArray(data.evaluations)) {
+        persistSaved(data.evaluations);
+      }
+
+      // Refrescar UI
+      renderConfigList();
+      renderConfigAddForm();
+      renderLists();
+      
+      closeConfig();
+      toast('Datos importados correctamente');
+      
+    } catch (err) {
+      toast('Error al importar: archivo no válido');
+      console.error(err);
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = ''; // Reset para permitir importar el mismo archivo de nuevo
+});
 
 /* ============ ESTADO ============ */
 let state = { name:'', order:[], index:0, answers:{}, selected:0 };
