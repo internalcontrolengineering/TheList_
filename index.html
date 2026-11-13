@@ -1,0 +1,1325 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>The List</title>
+<style>
+  :root {
+    --bg: #eef1f6; --bg-grad1: #e8ecf4; --bg-grad2: #dfe5ee;
+    --clay: #f0f3f9; --text: #1c1c1e; --text-sec: #6e6e73;
+    --accent: #0a84ff; --accent2: #5e5ce6;
+    --accent-grad: linear-gradient(145deg, #0a84ff, #5e5ce6);
+    --white-grad: linear-gradient(145deg, #34c759, #30d158);
+    --black-grad: linear-gradient(145deg, #ff453a, #ff3b30);
+    --neutral-grad: linear-gradient(145deg, #ff9500, #ff9f0a);
+    --star-on: #ffc107; --star-off: #cdd4e0;
+    --danger: #ff3b30; --danger-grad: linear-gradient(145deg, #ff5e57, #ff3b30);
+    --shadow-clay: 0 14px 30px rgba(140,150,175,.35), 0 4px 10px rgba(140,150,175,.2), inset 0 -4px 8px rgba(140,150,175,.25), inset 0 4px 8px rgba(255,255,255,.9);
+    --shadow-out: 8px 8px 20px rgba(174,184,204,.55), -8px -8px 20px rgba(255,255,255,.9);
+    --shadow-in: inset 3px 3px 8px rgba(174,184,204,.5), inset -3px -3px 8px rgba(255,255,255,.85);
+    --shadow-press: inset 4px 4px 10px rgba(140,150,175,.5), inset -4px -4px 10px rgba(255,255,255,.85);
+    --radius: 26px; --radius-sm: 18px; --safe: env(safe-area-inset-bottom, 0px);
+  }
+  html.dark {
+    --bg: #14161b; --bg-grad1: #181b21; --bg-grad2: #101216;
+    --clay: #1e2229; --text: #f5f5f7; --text-sec: #98989d;
+    --accent: #3b9bff; --accent2: #7b79ff;
+    --accent-grad: linear-gradient(145deg, #3b9bff, #7b79ff);
+    --star-off: #2e333c; --danger: #ff453a;
+    --danger-grad: linear-gradient(145deg, #ff6b63, #ff453a);
+    --shadow-clay: 0 16px 34px rgba(0,0,0,.55), 0 4px 10px rgba(0,0,0,.4), inset 0 -4px 8px rgba(0,0,0,.5), inset 0 4px 8px rgba(70,78,92,.35);
+    --shadow-out: 8px 8px 22px rgba(0,0,0,.6), -8px -8px 22px rgba(55,62,74,.35);
+    --shadow-in: inset 3px 3px 8px rgba(0,0,0,.5), inset -3px -3px 8px rgba(55,62,74,.35);
+    --shadow-press: inset 4px 4px 10px rgba(0,0,0,.6), inset -4px -4px 10px rgba(55,62,74,.3);
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin:0; padding:0; min-height:100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: var(--text);
+    background:
+      radial-gradient(1200px 800px at 20% 0%, var(--bg-grad1), transparent 60%),
+      radial-gradient(1000px 700px at 100% 100%, var(--bg-grad2), transparent 55%),
+      var(--bg);
+    transition: background .6s ease, color .5s ease;
+    display:flex; justify-content:center; overflow-x:hidden;
+  }
+  #app { width:100%; max-width:560px; padding: 20px 18px calc(34px + var(--safe)); display:flex; flex-direction:column; position:relative; }
+  .screen { display:none; flex-direction:column; flex:1; }
+  .screen.active { display:flex; animation: screenIn .55s cubic-bezier(.2,.8,.2,1); }
+  @keyframes screenIn { from { opacity:0; transform: translateY(26px) scale(.97); filter: blur(4px); } to { opacity:1; transform: translateY(0) scale(1); filter: blur(0); } }
+  @keyframes pop { 0%{transform:scale(.5);opacity:0} 60%{transform:scale(1.1);opacity:1} 100%{transform:scale(1)} }
+  @keyframes floatIn { from{opacity:0;transform:translateY(22px)} to{opacity:1;transform:translateY(0)} }
+  @keyframes itemOut { to { opacity:0; transform: scale(.85) translateX(-30px); max-height:0; margin:0; padding:0; } }
+  @keyframes modalIn { from { opacity:0; transform: scale(.85) translateY(20px); } to { opacity:1; transform: scale(1) translateY(0); } }
+
+  .topbar { display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; gap:10px; }
+  .logo { font-weight:800; font-size:1.15rem; letter-spacing:-.03em; display:flex; align-items:center; gap:8px; flex:1; }
+  .logo .dot { width:12px;height:12px;border-radius:50%; background: var(--accent-grad); box-shadow: 0 0 12px rgba(10,132,255,.6), inset 0 2px 3px rgba(255,255,255,.6), inset 0 -2px 4px rgba(0,0,0,.2); }
+  .logo span { background: var(--accent-grad); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .logo .lbl { color: var(--text); }
+  .topbar-actions { display:flex; gap:8px; }
+  .iconbtn { border:none; cursor:pointer; width:46px;height:46px;border-radius:16px; background: var(--clay); color: var(--text); display:flex;align-items:center;justify-content:center; font-size:1.15rem; box-shadow: var(--shadow-out); transition: transform .2s cubic-bezier(.34,1.56,.64,1), box-shadow .3s; }
+  .iconbtn:hover { transform: translateY(-2px); }
+  .iconbtn:active { transform: scale(.92); box-shadow: var(--shadow-in); }
+
+  h1 { font-size:1.95rem; letter-spacing:-.035em; margin:8px 0 6px; line-height:1.12; font-weight:800; }
+  .sub { color:var(--text-sec); font-size:.95rem; margin-bottom:24px; line-height:1.45; }
+
+  .card { background: var(--clay); border-radius: var(--radius); padding: 24px 22px; box-shadow: var(--shadow-clay); position:relative; transition: background .5s, box-shadow .5s; }
+  .card::before { content:''; position:absolute; inset:0; border-radius:inherit; pointer-events:none; background: linear-gradient(160deg, rgba(255,255,255,.35), transparent 40%); opacity:.6; }
+  html.dark .card::before { background: linear-gradient(160deg, rgba(255,255,255,.08), transparent 40%); }
+
+  .field-label { font-size:.8rem;font-weight:700;color:var(--text-sec); letter-spacing:.04em;text-transform:uppercase; margin-bottom:10px; display:block; }
+  .name-input { width:100%; border:none; outline:none; background: var(--clay); color: var(--text); font-size:1.15rem; font-weight:600; padding: 18px 20px; border-radius: var(--radius-sm); box-shadow: var(--shadow-in); transition: box-shadow .3s, background .3s; font-family:inherit; }
+  .name-input::placeholder { color: var(--text-sec); opacity:.6; font-weight:500; }
+  .name-input:focus { box-shadow: var(--shadow-in), 0 0 0 3px rgba(10,132,255,.28); }
+
+  .btn { border:none; cursor:pointer; font-family:inherit; background: var(--accent-grad); color:#fff; font-size:1.05rem; font-weight:700; padding: 18px; border-radius: var(--radius-sm); width:100%; box-shadow: 0 12px 24px rgba(10,132,255,.35), 0 4px 10px rgba(94,92,230,.25), inset 0 3px 6px rgba(255,255,255,.4), inset 0 -4px 8px rgba(0,0,0,.18); transition: transform .15s cubic-bezier(.34,1.56,.64,1), box-shadow .25s, filter .3s; letter-spacing:-.01em; position:relative; overflow:hidden; }
+  .btn::after { content:''; position:absolute; top:0;left:0;right:0; height:50%; background: linear-gradient(rgba(255,255,255,.35), transparent); border-radius: var(--radius-sm) var(--radius-sm) 50% 50%; pointer-events:none; }
+  .btn:hover { transform: translateY(-2px); }
+  .btn:active { transform: scale(.97); box-shadow: inset 0 4px 10px rgba(0,0,0,.3); }
+  .btn:disabled { opacity:.45; cursor:not-allowed; filter: grayscale(.5); transform:none; box-shadow: var(--shadow-in); }
+  .btn.ghost { background: var(--clay); color: var(--text); box-shadow: var(--shadow-out); font-weight:600; margin-top:12px; }
+  .btn.ghost::after { display:none; }
+  .btn.ghost:hover { transform: translateY(-2px); }
+  .btn.ghost:active { box-shadow: var(--shadow-in); transform: scale(.97); }
+  .btn.danger { background: var(--danger-grad); box-shadow: 0 12px 24px rgba(255,59,48,.35), 0 4px 10px rgba(255,59,48,.25), inset 0 3px 6px rgba(255,255,255,.4), inset 0 -4px 8px rgba(0,0,0,.18); }
+  .btn.small { padding: 12px 16px; font-size:.9rem; }
+
+  .progress-wrap { margin: 6px 0 22px; }
+  .progress-meta { display:flex; justify-content:space-between; font-size:.8rem; color:var(--text-sec); margin-bottom:10px; font-weight:600; }
+  .progress-bar { height: 14px; border-radius: 10px; background: var(--clay); box-shadow: var(--shadow-in); overflow:hidden; padding: 3px; }
+  .progress-fill { height:100%; width:0%; background: var(--accent-grad); border-radius: 8px; box-shadow: 0 0 12px rgba(10,132,255,.5), inset 0 2px 3px rgba(255,255,255,.5), inset 0 -2px 3px rgba(0,0,0,.2); transition: width .5s cubic-bezier(.2,.8,.2,1); }
+
+  .question-card { animation: screenIn .45s cubic-bezier(.2,.8,.2,1); }
+  .q-num { font-size:.75rem; font-weight:800; letter-spacing:.1em; color: var(--accent); text-transform:uppercase; margin-bottom:14px; display:inline-block; padding: 5px 12px; border-radius: 999px; background: var(--clay); box-shadow: var(--shadow-in); }
+  .item-tag { font-size:2rem; font-weight:800; letter-spacing:-.03em; line-height:1.1; margin-bottom:8px; }
+  .item-desc { font-size:.95rem; color:var(--text-sec); line-height:1.4; margin-bottom:30px; min-height:44px; font-weight:500; }
+  .item-weight-hint { display:inline-block; font-size:.68rem; font-weight:800; padding: 3px 9px; border-radius: 7px; background: var(--clay); box-shadow: var(--shadow-in); color: var(--text-sec); margin-bottom:14px; letter-spacing:.02em; }
+  .item-weight-hint.w2 { color: var(--accent); }
+  .item-weight-hint.w15 { color: var(--accent2); }
+
+  .stars { display:flex; gap:12px; justify-content:center; margin-bottom:10px; user-select:none; }
+  .star { font-size: 2.7rem; line-height:1; cursor:pointer; color: var(--star-off); text-shadow: 0 2px 4px rgba(0,0,0,.15), 0 -1px 1px rgba(255,255,255,.6); transition: transform .22s cubic-bezier(.34,1.56,.64,1), color .25s, text-shadow .25s, filter .25s; padding: 6px; will-change: transform; position:relative; }
+  .star.on { color: var(--star-on); text-shadow: 0 4px 12px rgba(255,193,7,.55), 0 -1px 1px rgba(255,255,255,.9); filter: drop-shadow(0 3px 6px rgba(255,193,7,.4)); }
+  .star.bounce { animation: starBounce .45s cubic-bezier(.34,1.56,.64,1); }
+  @keyframes starBounce { 0%{transform:scale(1)} 40%{transform:scale(1.4) rotate(-6deg)} 70%{transform:scale(.9) rotate(3deg)} 100%{transform:scale(1) rotate(0)} }
+  .stars-label { text-align:center; font-size:.9rem; color:var(--text-sec); height:22px; margin-top:8px; transition: color .3s; font-weight:600; }
+  .q-actions { margin-top:28px; }
+
+  .loading-box { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; min-height:62vh; }
+  .spinner { width: 84px; height: 84px; border-radius: 50%; background: var(--clay); box-shadow: var(--shadow-clay); position:relative; margin-bottom:30px; display:flex; align-items:center; justify-content:center; }
+  .spinner::before { content:''; width:56px;height:56px;border-radius:50%; border:5px solid transparent; border-top-color: var(--accent); border-right-color: var(--accent2); animation: spin 1s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-box h2 { font-size:1.35rem; margin:0 0 10px; letter-spacing:-.02em; font-weight:800; }
+  .loading-box p { color:var(--text-sec); margin:0; font-size:.95rem; }
+  .dots::after { content:''; animation: dots 1.4s steps(4,end) infinite; }
+  @keyframes dots { 0%{content:''}25%{content:'.'}50%{content:'..'}75%{content:'...'} }
+
+  .result-hero { text-align:center; padding: 12px 0 20px; animation: pop .7s cubic-bezier(.34,1.56,.64,1); }
+  .result-name { font-size:1.05rem; color:var(--text-sec); font-weight:500; margin-bottom:8px; }
+  .result-name b { color:var(--text); font-weight:800; }
+  .big-stars { display:flex; justify-content:center; gap:10px; margin:16px 0 10px; }
+  .big-stars .star { font-size:3.1rem; cursor:default; }
+  .big-stars .star:nth-child(1){animation:pop .5s .05s both}
+  .big-stars .star:nth-child(2){animation:pop .5s .13s both}
+  .big-stars .star:nth-child(3){animation:pop .5s .21s both}
+  .big-stars .star:nth-child(4){animation:pop .5s .29s both}
+  .big-stars .star:nth-child(5){animation:pop .5s .37s both}
+  .result-score { font-size:3.6rem; font-weight:900; letter-spacing:-.05em; background: var(--accent-grad); -webkit-background-clip:text; background-clip:text; color:transparent; line-height:1; margin-top:4px; filter: drop-shadow(0 4px 10px rgba(10,132,255,.25)); }
+  .result-score small { font-size:1.1rem; color:var(--text-sec); -webkit-text-fill-color:var(--text-sec); font-weight:700; }
+  .result-verdict { display:inline-block; padding: 10px 20px; border-radius: 999px; font-size:.85rem; font-weight:700; margin-top:14px; background: var(--clay); box-shadow: var(--shadow-out); transition: color .3s; }
+  .result-verdict.good { color:#34c759; }
+  .result-verdict.mid  { color:#0a84ff; }
+  .result-verdict.warn { color:#ff9500; }
+  .result-verdict.bad  { color:#ff3b30; }
+  .result-verdict.veto { color:#ff2d55; }
+
+  .result-actions { display:flex; gap:12px; margin-top:18px; flex-direction:column; }
+  .result-actions .btn { padding: 15px; font-size:.95rem; }
+
+  .summary-title { font-size:.78rem; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--text-sec); margin: 26px 0 12px; padding-left:6px; }
+  .summary-group { background: var(--clay); border-radius: var(--radius-sm); padding: 6px 18px; margin-bottom:14px; box-shadow: var(--shadow-clay); animation: floatIn .5s both; position:relative; }
+  .summary-group::before { content:''; position:absolute; inset:0; border-radius:inherit; pointer-events:none; background: linear-gradient(160deg, rgba(255,255,255,.25), transparent 45%); opacity:.5; }
+  html.dark .summary-group::before { background: linear-gradient(160deg, rgba(255,255,255,.06), transparent 45%); }
+  .summary-group.neg { animation-delay:.1s; }
+  .sum-group-title { font-size:.72rem; font-weight:800; text-transform:uppercase; letter-spacing:.08em; padding: 14px 0 6px; color:var(--text-sec); }
+  .sum-item { display:flex; align-items:center; justify-content:space-between; padding: 12px 0; gap:10px; border-bottom: 1px solid rgba(140,150,175,.18); }
+  html.dark .sum-item { border-bottom-color: rgba(255,255,255,.06); }
+  .sum-item:last-child { border-bottom:none; }
+  .sum-label { font-size:.92rem; flex:1; line-height:1.3; font-weight:600; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .weight-badge { font-size:.68rem; font-weight:800; padding: 2px 7px; border-radius: 6px; background: var(--clay); box-shadow: var(--shadow-in); color: var(--text-sec); letter-spacing:.02em; }
+  .weight-badge.w2 { color: var(--accent); }
+  .weight-badge.w15 { color: var(--accent2); }
+  .sum-stars { display:flex; gap:3px; flex-shrink:0; }
+  .sum-stars span { font-size:.98rem; color: var(--star-off); text-shadow: 0 1px 2px rgba(0,0,0,.12); }
+  .sum-stars span.on { color: var(--star-on); filter: drop-shadow(0 2px 4px rgba(255,193,7,.45)); }
+
+  .list-tabs { display:flex; gap:8px; margin-bottom:18px; }
+  .list-tab { flex:1; padding: 14px 8px; border:none; border-radius: 16px; background: var(--clay); color: var(--text-sec); font-weight:800; font-size:.82rem; cursor:pointer; box-shadow: var(--shadow-out); transition: all .25s; font-family:inherit; display:flex; flex-direction:column; align-items:center; gap:4px; }
+  .list-tab .lt-count { font-size:.68rem; font-weight:700; opacity:.7; }
+  .list-tab.active-white { background: var(--white-grad); color:#fff; box-shadow: 0 10px 22px rgba(52,199,89,.35), inset 0 2px 4px rgba(255,255,255,.35); }
+  .list-tab.active-neutral { background: var(--neutral-grad); color:#fff; box-shadow: 0 10px 22px rgba(255,149,0,.35), inset 0 2px 4px rgba(255,255,255,.35); }
+  .list-tab.active-black { background: var(--black-grad); color:#fff; box-shadow: 0 10px 22px rgba(255,59,48,.35), inset 0 2px 4px rgba(255,255,255,.35); }
+  .list-tab:active { transform: scale(.97); }
+
+  .list-header { display:flex; align-items:center; gap:10px; margin: 6px 0 14px; padding: 0 6px; }
+  .list-header .lh-icon { font-size:1.3rem; }
+  .list-header .lh-title { font-size:1.05rem; font-weight:800; letter-spacing:-.02em; }
+  .list-header .lh-sub { font-size:.78rem; color:var(--text-sec); font-weight:500; }
+
+  .saved-list { display:flex; flex-direction:column; gap:14px; }
+  .saved-item { display:flex; align-items:center; gap:12px; background: var(--clay); border-radius: var(--radius-sm); padding: 14px 14px 14px 16px; box-shadow: var(--shadow-clay); transition: transform .22s cubic-bezier(.34,1.56,.64,1), box-shadow .25s, opacity .3s; animation: floatIn .45s both; position:relative; overflow:hidden; flex-wrap: wrap; }
+  .saved-item::before { content:''; position:absolute; inset:0; border-radius:inherit; pointer-events:none; background: linear-gradient(160deg, rgba(255,255,255,.28), transparent 45%); opacity:.5; }
+  html.dark .saved-item::before { background: linear-gradient(160deg, rgba(255,255,255,.06), transparent 45%); }
+  .saved-item:hover { transform: translateY(-2px); }
+  .saved-item.removing { animation: itemOut .35s cubic-bezier(.4,0,1,1) forwards; }
+  .saved-main { display:flex; align-items:center; gap:12px; flex:1; min-width:0; cursor:pointer; position:relative; z-index:1; border-radius: 12px; padding: 4px; margin: -4px; transition: background .2s; }
+  .saved-main:active { background: rgba(10,132,255,.08); }
+  .saved-avatar { width:48px;height:48px;border-radius:16px; background: var(--accent-grad); display:flex;align-items:center;justify-content:center; color:#fff; font-weight:800; font-size:1.15rem; flex-shrink:0; box-shadow: 0 8px 16px rgba(10,132,255,.35), inset 0 3px 5px rgba(255,255,255,.45), inset 0 -3px 5px rgba(0,0,0,.2); }
+  .saved-avatar.white { background: var(--white-grad); box-shadow: 0 8px 16px rgba(52,199,89,.4), inset 0 3px 5px rgba(255,255,255,.5), inset 0 -3px 5px rgba(0,0,0,.15); }
+  .saved-avatar.black { background: var(--black-grad); box-shadow: 0 8px 16px rgba(255,59,48,.4), inset 0 3px 5px rgba(255,255,255,.5), inset 0 -3px 5px rgba(0,0,0,.15); }
+  .saved-avatar.neutral { background: var(--neutral-grad); box-shadow: 0 8px 16px rgba(255,149,0,.4), inset 0 3px 5px rgba(255,255,255,.5), inset 0 -3px 5px rgba(0,0,0,.15); }
+  .saved-info { flex:1; min-width:0; }
+  .saved-name { font-weight:700; font-size:1rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .saved-meta { font-size:.78rem; color:var(--text-sec); margin-top:3px; font-weight:500; }
+  .saved-score { text-align:right; flex-shrink:0; }
+  .saved-score b { font-size:1.15rem; display:block; line-height:1.1; font-weight:800; }
+  .saved-mini-stars { display:flex; gap:2px; margin-top:4px; }
+  .saved-mini-stars span { font-size:.72rem; color: var(--star-off); }
+  .saved-mini-stars span.on { color: var(--star-on); filter: drop-shadow(0 1px 2px rgba(255,193,7,.5)); }
+  .saved-actions { display:flex; gap:8px; position:relative; z-index:1; flex-shrink:0; }
+  .mini-btn { width: 40px; height: 40px; border-radius: 13px; border:none; cursor:pointer; background: var(--clay); color: var(--text); display:flex; align-items:center; justify-content:center; font-size: 1.05rem; box-shadow: var(--shadow-out); transition: transform .2s cubic-bezier(.34,1.56,.64,1), box-shadow .2s, color .2s; }
+  .mini-btn:hover { transform: translateY(-2px); }
+  .mini-btn:active { transform: scale(.9); box-shadow: var(--shadow-in); }
+  .mini-btn.edit:hover { color: var(--accent); }
+  .mini-btn.del:hover { color: var(--danger); }
+  @media (max-width: 420px) {
+    .saved-actions { width:100%; justify-content:flex-end; margin-top:2px; }
+    .saved-main { flex-basis: 100%; }
+  }
+
+  .empty { text-align:center; padding: 46px 22px; color:var(--text-sec); font-size:.95rem; line-height:1.5; background: var(--clay); border-radius: var(--radius-sm); box-shadow: var(--shadow-in); }
+  .empty .em-ico { font-size:2.6rem; margin-bottom:14px; opacity:.55; }
+  .footer-note { text-align:center; font-size:.75rem; color:var(--text-sec); margin-top:28px; opacity:.75; line-height:1.4; }
+
+  .overlay { position: fixed; inset: 0; background: rgba(10,14,22,.45); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 200; opacity: 0; pointer-events: none; transition: opacity .3s ease; }
+  .overlay.open { opacity: 1; pointer-events: auto; }
+  .modal { background: var(--clay); border-radius: var(--radius); padding: 26px 24px; width: 100%; max-width: 420px; box-shadow: var(--shadow-clay); position: relative; animation: modalIn .45s cubic-bezier(.34,1.56,.64,1); max-height: 88vh; overflow-y: auto; }
+  .modal::before { content:''; position:absolute; inset:0; border-radius:inherit; pointer-events:none; background: linear-gradient(160deg, rgba(255,255,255,.35), transparent 40%); opacity:.6; }
+  html.dark .modal::before { background: linear-gradient(160deg, rgba(255,255,255,.08), transparent 40%); }
+  .modal h3 { margin: 0 0 8px; font-size:1.25rem; letter-spacing:-.02em; font-weight:800; position:relative; }
+  .modal p { margin: 0 0 18px; color:var(--text-sec); font-size:.92rem; line-height:1.45; position:relative; }
+  .modal .name-input { position:relative; }
+  .modal-actions { display:flex; flex-direction:column; gap:10px; margin-top:18px; position:relative; }
+  .modal-actions .btn { padding: 15px; font-size:.98rem; }
+  .modal-icon { width: 60px; height: 60px; border-radius: 20px; display:flex; align-items:center; justify-content:center; font-size:1.7rem; margin-bottom:16px; background: var(--clay); box-shadow: var(--shadow-out); position:relative; }
+  .modal-icon.danger { color: var(--danger); }
+  .modal-icon.edit { color: var(--accent); }
+  .modal-icon.config { color: var(--accent2); }
+
+  .config-tabs { display:flex; gap:8px; margin-bottom:18px; position:relative; }
+  .config-tab { flex:1; padding: 12px; border:none; border-radius: 14px; background: var(--clay); color: var(--text-sec); font-weight:700; font-size:.88rem; cursor:pointer; box-shadow: var(--shadow-out); transition: all .25s; font-family:inherit; }
+  .config-tab.active { background: var(--accent-grad); color:#fff; box-shadow: 0 8px 18px rgba(10,132,255,.3), inset 0 2px 4px rgba(255,255,255,.3); }
+  .config-tab:active { transform: scale(.97); }
+
+  .config-list { display:flex; flex-direction:column; gap:8px; max-height: 38vh; overflow-y: auto; padding: 4px; position:relative; }
+  .config-item { display:flex; align-items:center; gap:8px; padding: 11px 12px; background: var(--clay); border-radius: 12px; box-shadow: var(--shadow-out); font-size:.88rem; }
+  .config-item .ci-name { flex:1; font-weight:600; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .config-item .ci-weight { font-size:.7rem; font-weight:800; padding: 2px 7px; border-radius: 6px; box-shadow: var(--shadow-in); color: var(--text-sec); }
+  .config-item .ci-weight.w2 { color: var(--accent); }
+  .config-item .ci-weight.w15 { color: var(--accent2); }
+  .ci-btn { width: 32px; height: 32px; border-radius: 10px; border:none; background: var(--clay); color: var(--text-sec); cursor:pointer; font-size:.9rem; box-shadow: var(--shadow-out); transition: all .2s; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .ci-btn:hover { transform: translateY(-1px); }
+  .ci-btn:active { box-shadow: var(--shadow-in); transform: scale(.9); }
+  .ci-btn.edit:hover { color: var(--accent); }
+  .ci-btn.del:hover { color: var(--danger); }
+
+  /* Formulario de edición inline */
+  .config-edit-form {
+    background: var(--clay);
+    border-radius: 14px;
+    padding: 14px;
+    box-shadow: var(--shadow-in);
+    display: flex; flex-direction: column; gap: 8px;
+    animation: floatIn .3s ease;
+    position: relative;
+  }
+  .config-edit-form .cef-title {
+    font-size:.72rem; font-weight:800; text-transform:uppercase;
+    letter-spacing:.06em; color: var(--accent); margin-bottom: 2px;
+  }
+  .config-edit-form .config-input { margin-bottom: 0; }
+  .config-edit-form .config-row { margin-bottom: 0; }
+  .config-edit-form .cef-actions {
+    display:flex; gap:8px; margin-top: 6px;
+  }
+  .config-edit-form .cef-actions .btn {
+    padding: 10px 14px; font-size:.85rem; flex:1;
+  }
+
+  .config-add { margin-top:14px; padding-top:14px; border-top: 1px solid rgba(140,150,175,.2); position:relative; }
+  html.dark .config-add { border-top-color: rgba(255,255,255,.08); }
+  .config-add-title { font-size:.78rem; font-weight:800; text-transform:uppercase; letter-spacing:.06em; color:var(--text-sec); margin-bottom:10px; }
+  .config-input { width:100%; border:none; outline:none; background: var(--clay); color: var(--text); font-size:.9rem; font-weight:500; padding: 12px 14px; border-radius: 12px; box-shadow: var(--shadow-in); margin-bottom:8px; font-family:inherit; }
+  .config-input::placeholder { color: var(--text-sec); opacity:.6; }
+  .config-row { display:flex; gap:8px; margin-bottom:8px; }
+  .config-row > * { flex:1; }
+  .config-select { border:none; outline:none; background: var(--clay); color: var(--text); font-size:.85rem; font-weight:600; padding: 12px 10px; border-radius: 12px; box-shadow: var(--shadow-in); font-family:inherit; cursor:pointer; -webkit-appearance:none; appearance:none; background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236e6e73' stroke-width='2'%3e%3cpath d='M6 9l6 6 6-6'/%3e%3c/svg%3e"); background-repeat:no-repeat; background-position: right 10px center; background-size: 14px; padding-right: 30px; }
+  .config-checkbox-row { display:flex; align-items:center; gap:8px; margin-bottom:10px; font-size:.85rem; color:var(--text-sec); font-weight:600; }
+  .config-checkbox-row input { width:18px; height:18px; cursor:pointer; accent-color: var(--accent); }
+  .config-add-btn { margin-top:4px; }
+
+  #toast { position: fixed; bottom: calc(26px + var(--safe)); left:50%; transform: translateX(-50%) translateY(130px); background: var(--clay); color: var(--text); padding: 13px 24px; border-radius: 999px; font-size:.85rem; font-weight:700; box-shadow: var(--shadow-clay); transition: transform .45s cubic-bezier(.34,1.56,.64,1); z-index:300; pointer-events:none; max-width:90%; text-align:center; }
+  #toast.show { transform: translateX(-50%) translateY(0); }
+
+  @media (max-width:380px) {
+    .star { font-size:2.25rem; }
+    .big-stars .star { font-size:2.55rem; }
+    h1 { font-size:1.65rem; }
+    .item-tag { font-size:1.6rem; }
+    .item-desc { font-size:.88rem; }
+    .stars { gap:8px; }
+    .list-tab { font-size:.75rem; padding: 12px 6px; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div class="topbar">
+    <div class="logo"><span class="dot"></span><span class="lbl">The List</span></div>
+    <div class="topbar-actions">
+      <button class="iconbtn" id="configBtn" title="Configurar ítems" aria-label="Configurar">⚙️</button>
+      <button class="iconbtn" id="themeBtn" title="Cambiar tema" aria-label="Cambiar tema">🌓</button>
+    </div>
+  </div>
+
+  <section class="screen active" id="screen-home">
+    <h1>The List</h1>
+    <p class="sub">Evalúa a una persona con la metodología MEI-5. Califica los pilares esenciales y descubre en qué lista cae.</p>
+
+    <div class="card">
+      <label class="field-label" for="nameInput">¿A quién vas a evaluar?</label>
+      <input type="text" class="name-input" id="nameInput" placeholder="Escribe su nombre" maxlength="40" autocomplete="off" />
+      <button class="btn" id="startBtn" disabled style="margin-top:18px;">Comenzar evaluación</button>
+      <button class="btn ghost" id="viewListsBtn" style="margin-top:12px;">📋 Ver listas</button>
+    </div>
+
+    <div class="footer-note">Tus datos se guardan solo en este dispositivo.</div>
+  </section>
+
+  <section class="screen" id="screen-lists">
+    <h1 style="font-size:1.6rem;">Las listas</h1>
+    <p class="sub" style="margin-bottom:18px;">White List para recomendadas, Neutral para reservas, Black List para no recomendadas.</p>
+
+    <div class="list-tabs">
+      <button class="list-tab" data-list="white">
+        <span>⚪ White List</span>
+        <span class="lt-count" id="countWhite">0</span>
+      </button>
+      <button class="list-tab" data-list="neutral">
+        <span>🟠 Neutral</span>
+        <span class="lt-count" id="countNeutral">0</span>
+      </button>
+      <button class="list-tab" data-list="black">
+        <span>⚫ Black List</span>
+        <span class="lt-count" id="countBlack">0</span>
+      </button>
+    </div>
+
+    <div class="list-header" id="listHeader">
+      <span class="lh-icon">⚪</span>
+      <div>
+        <div class="lh-title" id="lhTitle">White List</div>
+        <div class="lh-sub" id="lhSub">Recomendadas · 4★ y 5★</div>
+      </div>
+    </div>
+
+    <div id="listContainer" class="saved-list"></div>
+
+    <button class="btn ghost" id="backHomeFromLists" style="margin-top:20px;">Volver al inicio</button>
+  </section>
+
+  <section class="screen" id="screen-test">
+    <div class="progress-wrap">
+      <div class="progress-meta">
+        <span id="progressLabel">Valor 1 de 29</span>
+        <span id="progressPct">0%</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+    </div>
+
+    <div class="card question-card" id="questionCard">
+      <div class="q-num" id="qNum">Valor 1</div>
+      <div class="item-weight-hint" id="itemWeightHint">×2.0</div>
+      <div class="item-tag" id="itemTag">Cargando…</div>
+      <div class="item-desc" id="itemDesc">—</div>
+      <div class="stars" id="stars" role="radiogroup" aria-label="Calificación"></div>
+      <div class="stars-label" id="starsLabel">Toca una estrella para calificar</div>
+      <div class="q-actions">
+        <button class="btn" id="nextBtn" disabled>Siguiente</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="screen" id="screen-loading">
+    <div class="loading-box">
+      <div class="spinner"></div>
+      <h2>Generando resultado<span class="dots"></span></h2>
+      <p>Analizando los valores evaluados</p>
+    </div>
+  </section>
+
+  <section class="screen" id="screen-result">
+    <div class="result-hero">
+      <div class="result-name">Resultado para <b id="resName">—</b></div>
+      <div class="big-stars" id="resBigStars"></div>
+      <div class="result-score" id="resScore">0<small>/5</small></div>
+      <div class="result-verdict" id="resVerdict">—</div>
+    </div>
+
+    <div class="result-actions">
+      <button class="btn ghost" id="editCurrentBtn">✏️ Editar</button>
+      <button class="btn danger" id="deleteCurrentBtn" style="margin-top:0;">🗑️ Eliminar</button>
+    </div>
+
+    <div class="summary-title">Resumen de respuestas</div>
+    <div id="resSummary"></div>
+
+    <button class="btn ghost" id="backHomeBtn" style="margin-top:20px;">Volver al inicio</button>
+  </section>
+
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="modal" id="modal">
+    <div class="modal-icon" id="modalIcon">✏️</div>
+    <h3 id="modalTitle">Título</h3>
+    <p id="modalText">Texto</p>
+    <input type="text" class="name-input" id="modalNameInput" placeholder="Nuevo nombre" maxlength="40" autocomplete="off" style="display:none;" />
+    <div class="modal-actions" id="modalActions"></div>
+  </div>
+</div>
+
+<div class="overlay" id="configOverlay">
+  <div class="modal" id="configModal">
+    <div class="modal-icon config">⚙️</div>
+    <h3>Configurar ítems</h3>
+    <p>Edita, añade o elimina los valores positivos y negativos, y ajusta su peso.</p>
+
+    <div class="config-tabs">
+      <button class="config-tab active" data-tab="pos">Positivos (<span id="posCount">0</span>)</button>
+      <button class="config-tab" data-tab="neg">Negativos (<span id="negCount">0</span>)</button>
+    </div>
+
+    <div class="config-list" id="configList"></div>
+
+    <div class="config-add">
+      <div class="config-add-title" id="configAddTitle">Añadir positivo</div>
+      <input type="text" class="config-input" id="cfgTag" placeholder="Nombre (ej. Valentía)" maxlength="30" />
+      <input type="text" class="config-input" id="cfgDesc" placeholder="Descripción breve (opcional)" maxlength="90" />
+      <div class="config-row">
+        <select class="config-select" id="cfgWeight">
+          <option value="1">Peso ×1.0 (estándar)</option>
+          <option value="1.5">Peso ×1.5 (importante)</option>
+          <option value="2">Peso ×2.0 (prioritario)</option>
+        </select>
+      </div>
+      <div class="config-checkbox-row" id="cfgVetoRow" style="display:none;">
+        <input type="checkbox" id="cfgVeto" />
+        <label for="cfgVeto">Activar veto si se califica con 5★</label>
+      </div>
+      <button class="btn config-add-btn" id="cfgAddBtn">➕ Añadir</button>
+    </div>
+
+    <div class="modal-actions" style="margin-top:16px;">
+      <button class="btn ghost" id="cfgRestoreBtn" style="margin-top:0;">↺ Restaurar lista original</button>
+      <button class="btn ghost" id="cfgCloseBtn" style="margin-top:0;">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* =========================================================
+   LISTA POR DEFECTO
+========================================================= */
+const DEFAULT_POSITIVES = [
+  { key:'lealtad',        tag:'Lealtad',        desc:'Respaldo incondicional en las buenas y en las malas.', weight:2.0 },
+  { key:'honestidad',     tag:'Honestidad',     desc:'Verdad de frente, aunque sea incómoda.', weight:2.0 },
+  { key:'transparencia',  tag:'Transparencia',  desc:'Intenciones claras, cero agendas ocultas.', weight:2.0 },
+  { key:'companerismo',   tag:'Compañerismo',   desc:'Hacer equipo real, sumar esfuerzos y estar presente.', weight:2.0 },
+  { key:'humor',          tag:'Humor',          desc:'Ligereza mental, chispa rápida y capacidad de reírse sin dramas.', weight:2.0 },
+  { key:'empatia',        tag:'Empatía',        desc:'Conectar genuinamente con lo que sienten los demás.', weight:1.5 },
+  { key:'franqueza',      tag:'Franqueza',      desc:'Ir al grano sin rodeos.', weight:1.5 },
+  { key:'iniciativa',     tag:'Iniciativa',     desc:'Proponer y actuar sin esperar a que todo lo resuelvan otros.', weight:1.5 },
+  { key:'dinamismo',      tag:'Dinamismo',      desc:'Mantener un ritmo activo, ágil y estimulante.', weight:1.5 },
+  { key:'autonomia',      tag:'Autonomía',      desc:'Tener criterio propio e independencia.', weight:1.5 },
+  { key:'coherencia',     tag:'Coherencia',     desc:'Que los hechos respalden exactamente lo que se dice.', weight:1.5 },
+  { key:'firmeza',        tag:'Firmeza',        desc:'Tener carácter y saber sostener una postura propia.', weight:1.5 },
+  { key:'complicidad',    tag:'Complicidad',    desc:'Ser un aliado entusiasta en sus ideas y proyectos.', weight:1.5 }
+];
+const DEFAULT_NEGATIVES = [
+  { key:'falsedad',    tag:'Falsedad',    desc:'Aparentar lo que no se es para agradar o encajar.', weight:2.0, veto:true },
+  { key:'humillacion', tag:'Humillación', desc:'Intentar rebajar, ridiculizar o hacer sentir menos a otros.', weight:2.0, veto:true },
+  { key:'ofensas',     tag:'Ofensas',     desc:'Faltas de respeto, agresiones verbales o ataques gratuitos.', weight:2.0, veto:true },
+  { key:'interes',     tag:'Interés',     desc:'Acercarse solo por conveniencia, utilidad o beneficio propio.', weight:2.0, veto:true },
+  { key:'desinteres',  tag:'Desinterés',  desc:'Apatía, tardar en responder o mostrar falta de ganas.', weight:1.5 },
+  { key:'egocentrismo',tag:'Egocentrismo',desc:'Creer que todo gira alrededor de uno sin considerar a los demás.', weight:1.5 },
+  { key:'vanidad',     tag:'Vanidad',     desc:'Superficialidad y orgullo vacío basado en apariencias.', weight:1.5 },
+  { key:'tibieza',     tag:'Tibieza',     desc:'Falta de postura, ambigüedad o no comprometerse con nada.', weight:1.5 },
+  { key:'protagonismo',tag:'Protagonismo',desc:'Necesidad constante de llamar la atención o ser el centro.', weight:1.5 },
+  { key:'pretension',  tag:'Pretensión',  desc:'Presumir logros o cualidades inventadas; creerse algo que no son.', weight:1.5 },
+  { key:'invasion',    tag:'Invasión',    desc:'Intentar controlar su espacio, decisiones o tiempo.', weight:1.5 },
+  { key:'quejas',      tag:'Quejas',      desc:'Actitud pesimista, victimismo o negatividad constante.', weight:1.0 },
+  { key:'rigidez',     tag:'Rigidez',     desc:'Mentalidad cerrada, terquedad sin argumentos o exceso de protocolo.', weight:1.0 },
+  { key:'rodeos',      tag:'Rodeos',      desc:'Hablar con indirectas o evitar decir las cosas de frente.', weight:1.0 },
+  { key:'sumision',    tag:'Sumisión',    desc:'Dar la razón en todo por miedo al conflicto.', weight:1.0 },
+  { key:'pasividad',   tag:'Pasividad',   desc:'Esperar a que el otro resuelva o cargue con todo el peso.', weight:1.0 }
+];
+
+const STORAGE_KEY = 'thelist_evaluaciones_v1';
+const ITEMS_KEY = 'thelist_items_v1';
+const THEME_KEY = 'thelist_tema';
+
+const $ = (s) => document.querySelector(s);
+const $$ = (s) => document.querySelectorAll(s);
+
+let POSITIVE_ITEMS = [];
+let NEGATIVE_ITEMS = [];
+let editingItemKey = null;   // clave del ítem en edición inline
+
+function deepClone(arr) { return JSON.parse(JSON.stringify(arr)); }
+function loadItems() {
+  try {
+    const raw = localStorage.getItem(ITEMS_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed.pos) && Array.isArray(parsed.neg)) {
+        POSITIVE_ITEMS = parsed.pos;
+        NEGATIVE_ITEMS = parsed.neg;
+        return;
+      }
+    }
+  } catch(e) {}
+  POSITIVE_ITEMS = deepClone(DEFAULT_POSITIVES);
+  NEGATIVE_ITEMS = deepClone(DEFAULT_NEGATIVES);
+  saveItems();
+}
+function saveItems() {
+  localStorage.setItem(ITEMS_KEY, JSON.stringify({ pos: POSITIVE_ITEMS, neg: NEGATIVE_ITEMS }));
+}
+
+/* ============ TEMA ============ */
+function applyTheme() {
+  const stored = localStorage.getItem(THEME_KEY);
+  const html = document.documentElement;
+  html.classList.remove('dark');
+  if (stored === 'dark') html.classList.add('dark');
+  else if (stored === 'light') { /* claro */ }
+  else { const h = new Date().getHours(); if (h >= 19 || h < 7) html.classList.add('dark'); }
+}
+$('#themeBtn').addEventListener('click', () => {
+  const html = document.documentElement;
+  const isDark = html.classList.contains('dark');
+  if (isDark) { html.classList.remove('dark'); localStorage.setItem(THEME_KEY, 'light'); }
+  else { html.classList.add('dark'); localStorage.setItem(THEME_KEY, 'dark'); }
+  toast(isDark ? 'Modo claro' : 'Modo oscuro');
+});
+setInterval(() => { if (!localStorage.getItem(THEME_KEY)) applyTheme(); }, 60000);
+
+/* ============ HELPERS ============ */
+function toast(msg) {
+  const t = $('#toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._t);
+  t._t = setTimeout(() => t.classList.remove('show'), 2200);
+}
+function shuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+function loadSaved() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
+  catch { return []; }
+}
+function persistSaved(list) { localStorage.setItem(STORAGE_KEY, JSON.stringify(list)); }
+
+function showScreen(id) {
+  $$('.screen').forEach(s => s.classList.remove('active'));
+  const el = document.getElementById(id);
+  el.style.animation = 'none';
+  void el.offsetWidth;
+  el.style.animation = '';
+  el.classList.add('active');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function listCategory(stars) {
+  if (stars >= 4) return 'white';
+  if (stars === 3) return 'neutral';
+  return 'black';
+}
+function categoryMeta(cat) {
+  if (cat === 'white') return { icon:'⚪', title:'White List', sub:'Recomendadas · 4★ y 5★', avatar:'white' };
+  if (cat === 'neutral') return { icon:'🟠', title:'Neutral', sub:'Con reservas · 3★', avatar:'neutral' };
+  return { icon:'⚫', title:'Black List', sub:'No recomendadas · 1★ y 2★', avatar:'black' };
+}
+
+/* ============ MODAL GENÉRICO ============ */
+const overlay = $('#overlay');
+const modalTitle = $('#modalTitle');
+const modalText = $('#modalText');
+const modalIcon = $('#modalIcon');
+const modalNameInput = $('#modalNameInput');
+const modalActions = $('#modalActions');
+
+function openModal({ icon, iconClass, title, text, showInput, inputValue, buttons }) {
+  modalIcon.textContent = icon || '';
+  modalIcon.className = 'modal-icon ' + (iconClass || '');
+  modalTitle.textContent = title;
+  modalText.textContent = text || '';
+  if (showInput) {
+    modalNameInput.style.display = 'block';
+    modalNameInput.value = inputValue || '';
+    setTimeout(() => { modalNameInput.focus(); modalNameInput.select(); }, 200);
+  } else { modalNameInput.style.display = 'none'; }
+  modalActions.innerHTML = '';
+  buttons.forEach(b => {
+    const btn = document.createElement('button');
+    btn.className = 'btn ' + (b.cls || '');
+    btn.textContent = b.label;
+    btn.addEventListener('click', () => b.onClick());
+    modalActions.appendChild(btn);
+  });
+  overlay.classList.add('open');
+}
+function closeModal() { overlay.classList.remove('open'); }
+overlay.addEventListener('click', (e) => { if (e.target === overlay) closeModal(); });
+
+/* ============ MODAL CONFIG ============ */
+const configOverlay = $('#configOverlay');
+const configList = $('#configList');
+let configTab = 'pos';
+
+function openConfig() {
+  configTab = 'pos';
+  editingItemKey = null;
+  $$('.config-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === 'pos'));
+  renderConfigList();
+  renderConfigAddForm();
+  configOverlay.classList.add('open');
+}
+function closeConfig() { configOverlay.classList.remove('open'); }
+configOverlay.addEventListener('click', (e) => { if (e.target === configOverlay) closeConfig(); });
+
+$$('.config-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    configTab = tab.dataset.tab;
+    editingItemKey = null;
+    $$('.config-tab').forEach(t => t.classList.toggle('active', t === tab));
+    renderConfigList();
+    renderConfigAddForm();
+  });
+});
+
+function renderConfigList() {
+  const items = configTab === 'pos' ? POSITIVE_ITEMS : NEGATIVE_ITEMS;
+  $('#posCount').textContent = POSITIVE_ITEMS.length;
+  $('#negCount').textContent = NEGATIVE_ITEMS.length;
+  configList.innerHTML = '';
+  if (!items.length) {
+    configList.innerHTML = `<div style="padding:20px;text-align:center;color:var(--text-sec);font-size:.85rem;">No hay ítems. Añade uno abajo.</div>`;
+    return;
+  }
+  items.forEach((it) => {
+    if (it.key === editingItemKey) {
+      configList.appendChild(buildEditForm(it));
+    } else {
+      configList.appendChild(buildItemRow(it));
+    }
+  });
+}
+
+function buildItemRow(it) {
+  const row = document.createElement('div');
+  row.className = 'config-item';
+  const name = document.createElement('div');
+  name.className = 'ci-name';
+  name.textContent = it.tag;
+  const w = document.createElement('span');
+  w.className = 'ci-weight ' + (it.weight >= 2 ? 'w2' : it.weight >= 1.5 ? 'w15' : '');
+  w.textContent = '×' + it.weight.toFixed(1);
+
+  const edit = document.createElement('button');
+  edit.className = 'ci-btn edit';
+  edit.title = 'Editar';
+  edit.setAttribute('aria-label', 'Editar ítem');
+  edit.textContent = '✏️';
+  edit.addEventListener('click', () => {
+    editingItemKey = it.key;
+    renderConfigList();
+    // scroll al formulario
+    setTimeout(() => {
+      const form = configList.querySelector('.config-edit-form');
+      if (form) form.scrollIntoView({ behavior:'smooth', block:'nearest' });
+    }, 50);
+  });
+
+  const del = document.createElement('button');
+  del.className = 'ci-btn del';
+  del.title = 'Eliminar';
+  del.setAttribute('aria-label', 'Eliminar ítem');
+  del.textContent = '✕';
+  del.addEventListener('click', () => {
+    const arr = configTab === 'pos' ? POSITIVE_ITEMS : NEGATIVE_ITEMS;
+    const idx = arr.findIndex(i => i.key === it.key);
+    if (idx >= 0) arr.splice(idx, 1);
+    saveItems();
+    renderConfigList();
+    toast('Ítem eliminado');
+  });
+
+  row.appendChild(name); row.appendChild(w); row.appendChild(edit); row.appendChild(del);
+  return row;
+}
+
+function buildEditForm(it) {
+  const form = document.createElement('div');
+  form.className = 'config-edit-form';
+
+  const title = document.createElement('div');
+  title.className = 'cef-title';
+  title.textContent = 'Editando: ' + it.tag;
+  form.appendChild(title);
+
+  const tagInput = document.createElement('input');
+  tagInput.type = 'text';
+  tagInput.className = 'config-input';
+  tagInput.maxLength = 30;
+  tagInput.placeholder = 'Nombre';
+  tagInput.value = it.tag;
+  form.appendChild(tagInput);
+
+  const descInput = document.createElement('input');
+  descInput.type = 'text';
+  descInput.className = 'config-input';
+  descInput.maxLength = 90;
+  descInput.placeholder = 'Descripción breve';
+  descInput.value = it.desc === '—' ? '' : it.desc;
+  form.appendChild(descInput);
+
+  const row = document.createElement('div');
+  row.className = 'config-row';
+  const weightSel = document.createElement('select');
+  weightSel.className = 'config-select';
+  [['1','Peso ×1.0 (estándar)'],['1.5','Peso ×1.5 (importante)'],['2','Peso ×2.0 (prioritario)']].forEach(([v,l]) => {
+    const o = document.createElement('option');
+    o.value = v; o.textContent = l;
+    if (parseFloat(v) === it.weight) o.selected = true;
+    weightSel.appendChild(o);
+  });
+  row.appendChild(weightSel);
+  form.appendChild(row);
+
+  let vetoCheck = null;
+  if (configTab === 'neg') {
+    const vetoRow = document.createElement('div');
+    vetoRow.className = 'config-checkbox-row';
+    vetoCheck = document.createElement('input');
+    vetoCheck.type = 'checkbox';
+    vetoCheck.id = 'editVeto_' + it.key;
+    vetoCheck.checked = !!it.veto;
+    const lbl = document.createElement('label');
+    lbl.htmlFor = vetoCheck.id;
+    lbl.textContent = 'Activar veto si se califica con 5★';
+    vetoRow.appendChild(vetoCheck); vetoRow.appendChild(lbl);
+    form.appendChild(vetoRow);
+  }
+
+  const actions = document.createElement('div');
+  actions.className = 'cef-actions';
+  const cancel = document.createElement('button');
+  cancel.className = 'btn ghost';
+  cancel.textContent = 'Cancelar';
+  cancel.addEventListener('click', () => {
+    editingItemKey = null;
+    renderConfigList();
+  });
+  const save = document.createElement('button');
+  save.className = 'btn';
+  save.textContent = 'Guardar';
+  save.addEventListener('click', () => {
+    const newTag = tagInput.value.trim();
+    if (newTag.length < 2) { toast('El nombre debe tener al menos 2 caracteres'); return; }
+    const arr = configTab === 'pos' ? POSITIVE_ITEMS : NEGATIVE_ITEMS;
+    // Duplicado (excluyendo el propio)
+    if (arr.some(i => i.key !== it.key && i.tag.toLowerCase() === newTag.toLowerCase())) {
+      toast('Ya existe un ítem con ese nombre');
+      return;
+    }
+    const target = arr.find(i => i.key === it.key);
+    if (!target) return;
+    target.tag = newTag;
+    target.desc = descInput.value.trim() || '—';
+    target.weight = parseFloat(weightSel.value) || 1;
+    if (vetoCheck) target.veto = vetoCheck.checked;
+    saveItems();
+    editingItemKey = null;
+    renderConfigList();
+    toast('Ítem actualizado');
+  });
+  actions.appendChild(cancel); actions.appendChild(save);
+  form.appendChild(actions);
+
+  return form;
+}
+
+function renderConfigAddForm() {
+  const isPos = configTab === 'pos';
+  $('#configAddTitle').textContent = isPos ? 'Añadir positivo' : 'Añadir negativo';
+  $('#cfgVetoRow').style.display = isPos ? 'none' : 'flex';
+  $('#cfgVeto').checked = false;
+  $('#cfgTag').value = '';
+  $('#cfgDesc').value = '';
+  $('#cfgWeight').value = isPos ? '2' : '1';
+}
+
+$('#cfgAddBtn').addEventListener('click', () => {
+  const tag = $('#cfgTag').value.trim();
+  if (tag.length < 2) { toast('El nombre debe tener al menos 2 caracteres'); return; }
+  const desc = $('#cfgDesc').value.trim() || '—';
+  const weight = parseFloat($('#cfgWeight').value) || 1;
+  const isPos = configTab === 'pos';
+  const arr = isPos ? POSITIVE_ITEMS : NEGATIVE_ITEMS;
+  if (arr.some(i => i.tag.toLowerCase() === tag.toLowerCase())) {
+    toast('Ya existe un ítem con ese nombre');
+    return;
+  }
+  const key = 'custom_' + Date.now().toString(36) + Math.random().toString(36).slice(2,5);
+  const item = { key, tag, desc, weight };
+  if (!isPos) item.veto = $('#cfgVeto').checked;
+  arr.push(item);
+  saveItems();
+  editingItemKey = null;
+  renderConfigList();
+  renderConfigAddForm();
+  toast(isPos ? 'Positivo añadido' : 'Negativo añadido');
+});
+
+$('#cfgRestoreBtn').addEventListener('click', () => {
+  openModal({
+    icon: '↺', iconClass: 'config',
+    title: '¿Restaurar lista original?',
+    text: 'Se perderán todos los ítems personalizados que hayas añadido, editado o eliminado. Las evaluaciones guardadas no se borran.',
+    showInput: false,
+    buttons: [
+      { label: 'Cancelar', cls: 'ghost', onClick: () => closeModal() },
+      { label: 'Sí, restaurar', cls: 'danger', onClick: () => {
+          closeModal();
+          POSITIVE_ITEMS = deepClone(DEFAULT_POSITIVES);
+          NEGATIVE_ITEMS = deepClone(DEFAULT_NEGATIVES);
+          saveItems();
+          editingItemKey = null;
+          renderConfigList();
+          renderConfigAddForm();
+          toast('Lista original restaurada');
+        }
+      }
+    ]
+  });
+});
+
+$('#cfgCloseBtn').addEventListener('click', closeConfig);
+$('#configBtn').addEventListener('click', openConfig);
+
+/* ============ ESTADO ============ */
+let state = { name:'', order:[], index:0, answers:{}, selected:0 };
+let editingRecordId = null;
+let currentRecordId = null;
+let currentListTab = 'white';
+
+/* ============ HOME ============ */
+const nameInput = $('#nameInput');
+const startBtn = $('#startBtn');
+nameInput.addEventListener('input', () => { startBtn.disabled = nameInput.value.trim().length < 2; });
+nameInput.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !startBtn.disabled) startBtn.click(); });
+startBtn.addEventListener('click', () => {
+  const name = nameInput.value.trim();
+  if (name.length < 2) return;
+  if (!POSITIVE_ITEMS.length && !NEGATIVE_ITEMS.length) {
+    toast('No hay ítems configurados. Añade al menos uno en ⚙️');
+    return;
+  }
+  startTest(name);
+});
+$('#viewListsBtn').addEventListener('click', () => {
+  currentListTab = 'white';
+  showScreen('screen-lists');
+  renderLists();
+});
+$('#backHomeFromLists').addEventListener('click', () => {
+  showScreen('screen-home');
+});
+
+/* ============ LISTAS ============ */
+$$('.list-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    currentListTab = tab.dataset.list;
+    renderLists();
+  });
+});
+
+function renderLists() {
+  const saved = loadSaved();
+  const groups = { white: [], neutral: [], black: [] };
+  saved.forEach(r => { groups[listCategory(r.stars)].push(r); });
+
+  $('#countWhite').textContent = groups.white.length;
+  $('#countNeutral').textContent = groups.neutral.length;
+  $('#countBlack').textContent = groups.black.length;
+
+  $$('.list-tab').forEach(t => {
+    t.classList.remove('active-white', 'active-neutral', 'active-black');
+    if (t.dataset.list === currentListTab) t.classList.add('active-' + currentListTab);
+  });
+
+  const meta = categoryMeta(currentListTab);
+  $('#listHeader').querySelector('.lh-icon').textContent = meta.icon;
+  $('#lhTitle').textContent = meta.title;
+  $('#lhSub').textContent = meta.sub;
+
+  const cont = $('#listContainer');
+  cont.innerHTML = '';
+  const items = groups[currentListTab];
+  if (!items.length) {
+    cont.innerHTML = `<div class="empty"><div class="em-ico">📋</div>No hay personas en esta lista todavía.</div>`;
+    return;
+  }
+  items.forEach((rec, idx) => {
+    const item = document.createElement('div');
+    item.className = 'saved-item';
+    item.dataset.recordId = rec.id;
+    item.style.animationDelay = `${idx * 0.05}s`;
+
+    const main = document.createElement('div');
+    main.className = 'saved-main';
+
+    const avatar = document.createElement('div');
+    avatar.className = 'saved-avatar ' + meta.avatar;
+    avatar.textContent = rec.name.trim().charAt(0).toUpperCase();
+
+    const info = document.createElement('div');
+    info.className = 'saved-info';
+    const nameEl = document.createElement('div');
+    nameEl.className = 'saved-name'; nameEl.textContent = rec.name;
+    const metaEl = document.createElement('div');
+    metaEl.className = 'saved-meta';
+    const d = new Date(rec.date);
+    metaEl.textContent = d.toLocaleDateString('es',{day:'2-digit',month:'short',year:'numeric'});
+    info.appendChild(nameEl); info.appendChild(metaEl);
+
+    const score = document.createElement('div');
+    score.className = 'saved-score';
+    const num = document.createElement('b'); num.textContent = rec.stars;
+    const mini = document.createElement('div');
+    mini.className = 'saved-mini-stars';
+    for (let i = 1; i <= 5; i++) {
+      const sp = document.createElement('span');
+      sp.textContent = '★';
+      if (i <= rec.stars) sp.classList.add('on');
+      mini.appendChild(sp);
+    }
+    score.appendChild(num); score.appendChild(mini);
+
+    main.appendChild(avatar); main.appendChild(info); main.appendChild(score);
+    main.addEventListener('click', () => openSavedRecord(rec));
+
+    const actions = document.createElement('div');
+    actions.className = 'saved-actions';
+
+    const editBtn = document.createElement('button');
+    editBtn.className = 'mini-btn edit';
+    editBtn.title = 'Editar';
+    editBtn.setAttribute('aria-label', 'Editar evaluación');
+    editBtn.textContent = '✏️';
+    editBtn.addEventListener('click', (e) => { e.stopPropagation(); openEditModal(rec); });
+
+    const delBtn = document.createElement('button');
+    delBtn.className = 'mini-btn del';
+    delBtn.title = 'Eliminar';
+    delBtn.setAttribute('aria-label', 'Eliminar evaluación');
+    delBtn.textContent = '🗑️';
+    delBtn.addEventListener('click', (e) => { e.stopPropagation(); openDeleteModal(rec); });
+
+    actions.appendChild(editBtn); actions.appendChild(delBtn);
+    item.appendChild(main); item.appendChild(actions);
+    cont.appendChild(item);
+  });
+}
+
+/* ============ TEST ============ */
+function startTest(name, editingId = null) {
+  state = {
+    name,
+    order: shuffle([
+      ...POSITIVE_ITEMS.map(i => ({...i, type:'pos'})),
+      ...NEGATIVE_ITEMS.map(i => ({...i, type:'neg'}))
+    ]),
+    index: 0, answers: {}, selected: 0
+  };
+  editingRecordId = editingId;
+  nameInput.value = '';
+  startBtn.disabled = true;
+  showScreen('screen-test');
+  renderQuestion();
+}
+
+function renderQuestion() {
+  const item = state.order[state.index];
+  const total = state.order.length;
+  const pct = Math.round((state.index / total) * 100);
+  $('#progressLabel').textContent = `Valor ${state.index + 1} de ${total}`;
+  $('#progressPct').textContent = `${pct}%`;
+  $('#progressFill').style.width = `${pct}%`;
+  $('#qNum').textContent = `Valor ${state.index + 1}`;
+  $('#itemTag').textContent = item.tag;
+  $('#itemDesc').textContent = item.desc;
+  const wh = $('#itemWeightHint');
+  wh.textContent = '×' + item.weight.toFixed(1) + (item.weight >= 2 ? ' · Prioritario' : item.weight >= 1.5 ? ' · Importante' : ' · Estándar');
+  wh.className = 'item-weight-hint ' + (item.weight >= 2 ? 'w2' : item.weight >= 1.5 ? 'w15' : '');
+
+  const starsEl = $('#stars');
+  starsEl.innerHTML = '';
+  state.selected = 0;
+  for (let i = 1; i <= 5; i++) {
+    const s = document.createElement('span');
+    s.className = 'star';
+    s.dataset.value = i;
+    s.textContent = '★';
+    s.setAttribute('role','radio');
+    s.setAttribute('aria-label', `${i} estrellas`);
+    s.addEventListener('click', () => selectStar(i));
+    s.addEventListener('mouseenter', () => previewStar(i));
+    s.addEventListener('mouseleave', () => previewStar(state.selected));
+    starsEl.appendChild(s);
+  }
+  starsEl.addEventListener('touchstart', (e) => {
+    const t = e.target.closest('.star');
+    if (t) { e.preventDefault(); selectStar(parseInt(t.dataset.value)); }
+  }, {passive:false});
+
+  const labelEl = $('#starsLabel');
+  labelEl.textContent = 'Toca una estrella para calificar';
+  labelEl.style.color = 'var(--text-sec)';
+  $('#nextBtn').disabled = true;
+  $('#nextBtn').textContent = (state.index === total - 1) ? 'Ver resultado' : 'Siguiente';
+
+  const card = $('#questionCard');
+  card.style.animation = 'none';
+  void card.offsetWidth;
+  card.style.animation = 'screenIn .45s cubic-bezier(.2,.8,.2,1)';
+}
+function previewStar(n) {
+  $$('#stars .star').forEach(s => { s.classList.toggle('on', parseInt(s.dataset.value) <= n); });
+}
+function selectStar(n) {
+  state.selected = n;
+  $$('#stars .star').forEach(s => {
+    const v = parseInt(s.dataset.value);
+    s.classList.toggle('on', v <= n);
+    if (v === n) { s.classList.remove('bounce'); void s.offsetWidth; s.classList.add('bounce'); }
+  });
+  const item = state.order[state.index];
+  const labels = item.type === 'pos' ? ['Nada','Poco','Moderado','Notable','Sobresaliente'] : ['Nada (bien)','Leve (bien)','Moderado','Notable (mal)','Grave (mal)'];
+  const labelEl = $('#starsLabel');
+  labelEl.textContent = `${n} ${n === 1 ? 'estrella' : 'estrellas'} · ${labels[n-1]}`;
+  labelEl.style.color = item.type === 'pos'
+    ? (n >= 4 ? '#34c759' : n === 3 ? '#ff9500' : '#ff3b30')
+    : (n >= 4 ? '#ff3b30' : n === 3 ? '#ff9500' : '#34c759');
+  $('#nextBtn').disabled = false;
+}
+
+$('#nextBtn').addEventListener('click', () => {
+  if (!state.selected) return;
+  const item = state.order[state.index];
+  state.answers[item.key] = state.selected;
+  if (state.index < state.order.length - 1) {
+    state.index++;
+    const card = $('#questionCard');
+    card.style.transition = 'opacity .22s, transform .22s, filter .22s';
+    card.style.opacity = '0';
+    card.style.transform = 'translateY(-12px) scale(.98)';
+    card.style.filter = 'blur(3px)';
+    setTimeout(() => {
+      card.style.transition = 'none';
+      card.style.opacity = '1';
+      card.style.transform = 'translateY(0) scale(1)';
+      card.style.filter = 'blur(0)';
+      renderQuestion();
+    }, 220);
+  } else {
+    finishTest();
+  }
+});
+
+/* ============ CÁLCULO ============ */
+function computeResult(answers) {
+  let sumP = 0, sumN = 0, maxP = 0, maxN = 0;
+  let veto = false;
+  POSITIVE_ITEMS.forEach(it => {
+    const v = answers[it.key] || 1;
+    sumP += v * it.weight;
+    maxP += 5 * it.weight;
+  });
+  NEGATIVE_ITEMS.forEach(it => {
+    const v = answers[it.key] || 1;
+    sumN += v * it.weight;
+    maxN += 5 * it.weight;
+    if (it.veto && v === 5) veto = true;
+  });
+  const IIN = ((sumP / (maxP || 1)) - (sumN / (maxN || 1)) * 1.5) * 50;
+  let stars;
+  if (IIN >= 40) stars = 5;
+  else if (IIN >= 25) stars = 4;
+  else if (IIN >= 10) stars = 3;
+  else if (IIN >= -5) stars = 2;
+  else stars = 1;
+  if (veto && stars > 3) stars = 3;
+  return { IIN, stars, veto, sumP, sumN, maxP, maxN };
+}
+function verdictFor(stars, veto) {
+  if (veto && stars === 3) return { text:'Veto crítico · Reservas serias', cls:'veto' };
+  if (stars === 5) return { text:'Relación altamente recomendable', cls:'good' };
+  if (stars === 4) return { text:'Relación sólida con áreas menores', cls:'good' };
+  if (stars === 3) return { text:'Relación viable con reservas', cls:'mid' };
+  if (stars === 2) return { text:'Relación de alto riesgo', cls:'warn' };
+  return { text:'Relación no recomendable', cls:'bad' };
+}
+
+/* ============ FIN DEL TEST ============ */
+function finishTest() {
+  showScreen('screen-loading');
+  const result = computeResult(state.answers);
+  const saved = loadSaved();
+  const snapshot = {
+    pos: POSITIVE_ITEMS.map(i => ({key:i.key, tag:i.tag, weight:i.weight})),
+    neg: NEGATIVE_ITEMS.map(i => ({key:i.key, tag:i.tag, weight:i.weight}))
+  };
+  let record;
+  if (editingRecordId) {
+    const idx = saved.findIndex(r => r.id === editingRecordId);
+    record = {
+      id: editingRecordId, name: state.name, date: new Date().toISOString(),
+      answers: {...state.answers}, IIN: result.IIN, stars: result.stars, veto: result.veto,
+      snapshot
+    };
+    if (idx >= 0) saved[idx] = record; else saved.unshift(record);
+  } else {
+    record = {
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+      name: state.name, date: new Date().toISOString(),
+      answers: {...state.answers}, IIN: result.IIN, stars: result.stars, veto: result.veto,
+      snapshot
+    };
+    saved.unshift(record);
+  }
+  persistSaved(saved);
+  const wasEditing = !!editingRecordId;
+  editingRecordId = null;
+  const delay = 2200 + Math.random() * 900;
+  setTimeout(() => {
+    renderResult(record, true);
+    showScreen('screen-result');
+    if (wasEditing) setTimeout(() => toast('Evaluación actualizada'), 700);
+  }, delay);
+}
+
+/* ============ RENDER RESULTADO ============ */
+function renderResult(record, isNew) {
+  currentRecordId = record.id;
+  $('#resName').textContent = record.name;
+  const big = $('#resBigStars');
+  big.innerHTML = '';
+  for (let i = 1; i <= 5; i++) {
+    const s = document.createElement('span');
+    s.className = 'star' + (i <= record.stars ? ' on' : '');
+    s.textContent = '★';
+    big.appendChild(s);
+  }
+  const scoreEl = $('#resScore');
+  scoreEl.innerHTML = `0<small>/5</small>`;
+  const target = record.stars;
+  const dur = 750, t0 = performance.now();
+  function tick(t) {
+    const p = Math.min((t - t0) / dur, 1);
+    const eased = 1 - Math.pow(1 - p, 3);
+    const val = Math.round(eased * target);
+    scoreEl.innerHTML = `${val}<small>/5</small>`;
+    if (p < 1) requestAnimationFrame(tick);
+    else scoreEl.innerHTML = `${target}<small>/5</small>`;
+  }
+  requestAnimationFrame(tick);
+
+  const v = verdictFor(record.stars, record.veto);
+  const vEl = $('#resVerdict');
+  vEl.textContent = v.text;
+  vEl.className = 'result-verdict ' + v.cls;
+
+  const summary = $('#resSummary');
+  summary.innerHTML = '';
+  const posItems = record.snapshot ? record.snapshot.pos : POSITIVE_ITEMS;
+  const negItems = record.snapshot ? record.snapshot.neg : NEGATIVE_ITEMS;
+
+  const posGroup = document.createElement('div');
+  posGroup.className = 'summary-group';
+  posGroup.innerHTML = '<div class="sum-group-title">Aspectos positivos</div>';
+  posItems.forEach(it => posGroup.appendChild(makeSumItem(it.tag, it.weight, record.answers[it.key] || 0)));
+  const negGroup = document.createElement('div');
+  negGroup.className = 'summary-group neg';
+  negGroup.innerHTML = '<div class="sum-group-title">Aspectos negativos</div>';
+  negItems.forEach(it => negGroup.appendChild(makeSumItem(it.tag, it.weight, record.answers[it.key] || 0)));
+  summary.appendChild(posGroup);
+  summary.appendChild(negGroup);
+
+  if (isNew) setTimeout(() => toast('Evaluación guardada'), 600);
+}
+function makeSumItem(label, weight, value) {
+  const div = document.createElement('div');
+  div.className = 'sum-item';
+  const l = document.createElement('div');
+  l.className = 'sum-label';
+  const txt = document.createElement('span');
+  txt.textContent = label;
+  const wb = document.createElement('span');
+  wb.className = 'weight-badge ' + (weight >= 2 ? 'w2' : weight >= 1.5 ? 'w15' : '');
+  wb.textContent = '×' + weight.toFixed(1);
+  l.appendChild(txt); l.appendChild(wb);
+  const stars = document.createElement('div');
+  stars.className = 'sum-stars';
+  for (let i = 1; i <= 5; i++) {
+    const sp = document.createElement('span');
+    sp.textContent = '★';
+    if (i <= value) sp.classList.add('on');
+    stars.appendChild(sp);
+  }
+  div.appendChild(l); div.appendChild(stars);
+  return div;
+}
+
+/* ============ ACCIONES RESULTADO ============ */
+$('#editCurrentBtn').addEventListener('click', () => {
+  const rec = loadSaved().find(r => r.id === currentRecordId);
+  if (rec) openEditModal(rec);
+});
+$('#deleteCurrentBtn').addEventListener('click', () => {
+  const rec = loadSaved().find(r => r.id === currentRecordId);
+  if (rec) openDeleteModal(rec);
+});
+$('#backHomeBtn').addEventListener('click', () => {
+  renderLists();
+  showScreen('screen-lists');
+});
+
+/* ============ ELIMINAR ============ */
+function openDeleteModal(rec) {
+  openModal({
+    icon: '🗑️', iconClass: 'danger',
+    title: `¿Eliminar a ${rec.name}?`,
+    text: 'Esta acción borrará permanentemente la evaluación guardada. No se puede deshacer.',
+    showInput: false,
+    buttons: [
+      { label: 'Cancelar', cls: 'ghost', onClick: () => closeModal() },
+      { label: 'Sí, eliminar', cls: 'danger', onClick: () => { closeModal(); deleteRecord(rec.id); } }
+    ]
+  });
+}
+function deleteRecord(id) {
+  const card = document.querySelector(`[data-record-id="${id}"]`);
+  if (card) card.classList.add('removing');
+  const saved = loadSaved().filter(r => r.id !== id);
+  persistSaved(saved);
+  setTimeout(() => {
+    renderLists();
+    if (currentRecordId === id) { currentRecordId = null; showScreen('screen-lists'); }
+    toast('Evaluación eliminada');
+  }, card ? 360 : 0);
+}
+
+/* ============ EDITAR EVALUACIÓN ============ */
+function openEditModal(rec) {
+  openModal({
+    icon: '✏️', iconClass: 'edit',
+    title: 'Editar evaluación',
+    text: 'Puedes cambiar el nombre y guardar, o volver a responder el test completo.',
+    showInput: true, inputValue: rec.name,
+    buttons: [
+      { label: 'Cancelar', cls: 'ghost', onClick: () => closeModal() },
+      { label: 'Guardar solo el nombre', cls: 'ghost', onClick: () => {
+          const newName = modalNameInput.value.trim();
+          if (newName.length < 2) { toast('El nombre debe tener al menos 2 caracteres'); return; }
+          closeModal(); renameRecord(rec.id, newName);
+        }
+      },
+      { label: 'Re-evaluar (test completo)', cls: '', onClick: () => {
+          const newName = modalNameInput.value.trim() || rec.name;
+          if (newName.length < 2) { toast('El nombre debe tener al menos 2 caracteres'); return; }
+          closeModal(); startTest(newName, rec.id);
+        }
+      }
+    ]
+  });
+}
+function renameRecord(id, newName) {
+  const saved = loadSaved();
+  const idx = saved.findIndex(r => r.id === id);
+  if (idx < 0) return;
+  saved[idx].name = newName;
+  persistSaved(saved);
+  if (currentRecordId === id) $('#resName').textContent = newName;
+  renderLists();
+  toast('Nombre actualizado');
+  setTimeout(() => {
+    const card = document.querySelector(`[data-record-id="${id}"]`);
+    if (card) {
+      card.style.transition = 'transform .4s cubic-bezier(.34,1.56,.64,1), box-shadow .25s';
+      card.style.transform = 'scale(1.03)';
+      setTimeout(() => { card.style.transform = ''; }, 250);
+    }
+  }, 50);
+}
+
+function openSavedRecord(rec) {
+  renderResult(rec, false);
+  showScreen('screen-result');
+  $('#resScore').innerHTML = `0<small>/5</small>`;
+  const target = rec.stars;
+  const dur = 800, t0 = performance.now();
+  function tick(t) {
+    const p = Math.min((t - t0) / dur, 1);
+    const eased = 1 - Math.pow(1 - p, 3);
+    const val = Math.round(eased * target);
+    $('#resScore').innerHTML = `${val}<small>/5</small>`;
+    if (p < 1) requestAnimationFrame(tick);
+    else $('#resScore').innerHTML = `${target}<small>/5</small>`;
+  }
+  requestAnimationFrame(tick);
+  toast(`Evaluación de ${rec.name}`);
+}
+
+/* ============ INIT ============ */
+loadItems();
+applyTheme();
+renderLists();
+</script>
+</body>
+</html>
